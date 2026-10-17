@@ -22,8 +22,12 @@
 - Caddy TLS reverse-proxy example (`deployment/Caddyfile`); `.env.example` with every knob documented; CI workflow; smoke script.
 - 50 automated tests (unit, integration, e2e with real sockets, security, CLI subprocess, OpenAPI sync).
 
+### Networking (unreleased)
+- Bind address is now explicit: `HOST` env (default `0.0.0.0` — all interfaces) is passed to `server.listen`, so the server is reachable from LAN/reverse proxies/proxied platforms by default; `HOST=127.0.0.1` restricts it. Documented in `.env.example`.
+- On platforms that inject a public domain, `PUBLIC_DOMAIN`/`PUBLIC_BASE_URL` are auto-derived from `REPLIT_DOMAINS` (or `REPLIT_DEV_DOMAIN`) when not set explicitly, so generated tunnel URLs use the platform URL (e.g. `https://<app>.replit.app`) instead of `localhost`. Explicit env always wins.
+
 ### Replit deployment (unreleased)
-- Replit import config (`.replit`, `replit.nix`): importing the repo sets up the Run button (Node 20 module, install + build, server on port 8080 mapped to 80, `REPLIT_DEV_DOMAIN` wired into `PUBLIC_DOMAIN`/`PUBLIC_BASE_URL`) and the Publish command (`npm install && npm run build` / `npm start`). Provided as-is; not executed on Replit in the authoring environment.
+- Replit import config (`.replit`, `replit.nix`): importing the repo sets up the Run button (Node 20 module, install + build, server on port 8080 mapped to 80, `TRUST_PROXY=true` because traffic arrives through Replit's proxy) and the Publish command (`npm install && npm run build` / `TRUST_PROXY=true npm start`). Public URLs derive from `REPLIT_DOMAINS`. Provided as-is; not executed on Replit in the authoring environment.
 
 ### Fixes (unreleased)
 - Dashboard tunnel list and admin user list inline scripts had syntax errors (Stop/Suspend buttons and the whole page script never ran). Both are fixed and covered by a page-script parse test.

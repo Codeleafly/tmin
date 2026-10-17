@@ -170,6 +170,30 @@ describe("config validation", () => {
     assert.throws(() => loadConfig(), /TTL/);
     process.env = old;
   });
+  it("binds all interfaces by default and honors HOST", () => {
+    const old = { ...process.env };
+    delete process.env.HOST;
+    assert.equal(loadConfig().host, "0.0.0.0");
+    process.env.HOST = "127.0.0.1";
+    assert.equal(loadConfig().host, "127.0.0.1");
+    process.env = old;
+  });
+  it("derives the public URL from platform domains only when unset", () => {
+    const old = { ...process.env };
+    delete process.env.PUBLIC_DOMAIN;
+    delete process.env.PUBLIC_BASE_URL;
+    process.env.REPLIT_DOMAINS = "first.example.net, second.example.net";
+    let c = loadConfig();
+    assert.equal(c.publicDomain, "first.example.net");
+    assert.equal(c.publicBaseUrl, "https://first.example.net");
+    delete process.env.REPLIT_DOMAINS;
+    process.env.REPLIT_DEV_DOMAIN = "dev.example.org";
+    c = loadConfig();
+    assert.equal(c.publicBaseUrl, "https://dev.example.org");
+    process.env.PUBLIC_BASE_URL = "https://explicit.example.com";
+    assert.equal(loadConfig().publicBaseUrl, "https://explicit.example.com");
+    process.env = old;
+  });
 });
 
 describe("validators", () => {

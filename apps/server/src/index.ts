@@ -174,10 +174,10 @@ export async function start(): Promise<Started> {
     await handlePublicRequest(req, res, { store, cfg });
   }
 
-  await new Promise<void>((resolve) => server.listen(cfg.port, resolve));
+  await new Promise<void>((resolve) => server.listen(cfg.port, cfg.host, resolve));
   const addr = server.address();
   const port = typeof addr === "object" && addr ? addr.port : cfg.port;
-  logger.info(`tmin listening on :${port}`, { base: cfg.publicBaseUrl });
+  logger.info(`tmin listening on ${cfg.host}:${port}`, { base: cfg.publicBaseUrl });
 
   let closed = false;
   const close = async (): Promise<void> => {

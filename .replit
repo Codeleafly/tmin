@@ -4,24 +4,19 @@ onBoot = "npm install"
 build = "npm install && npm run build"
 
 [run]
-args = ["bash", "-c", """
-if [ -n "$REPLIT_DEV_DOMAIN" ]; then
-  export PUBLIC_DOMAIN="$REPLIT_DEV_DOMAIN"
-  export PUBLIC_BASE_URL="https://$REPLIT_DEV_DOMAIN"
-fi
-exec npm start
-"""]
+args = ["npm", "start"]
 
 [run.env]
 PORT = "8080"
 DATA_DIR = "./data"
+TRUST_PROXY = "true"
 
 [gitHubImport]
 requiredFiles = [".replit", "replit.nix"]
 
 [deployment]
 build = "npm install && npm run build"
-run = "npm start"
+run = "TRUST_PROXY=true exec npm start"
 
 [[ports]]
 localPort = 8080

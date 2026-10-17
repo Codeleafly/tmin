@@ -3,6 +3,7 @@
 export interface AppConfig {
   nodeEnv: string;
   port: number;
+  host: string;
   logLevel: string;
   publicDomain: string;
   publicBaseUrl: string;
@@ -50,18 +51,32 @@ function num(name: string, fallback: number): number {
   return v;
 }
 
+/**
+ * Public domain injected by hosting platforms when none is configured.
+ * Replit sets REPLIT_DOMAINS (comma-separated, dev + deployments);
+ * REPLIT_DEV_DOMAIN exists only in the workspace.
+ */
+function platformPublicDomain(): string | null {
+  const first = env("REPLIT_DOMAINS").split(",")[0]?.trim();
+  if (first) return first;
+  return env("REPLIT_DEV_DOMAIN").trim() || null;
+}
+
 export function loadConfig(): AppConfig {
   const nodeEnv = env("NODE_ENV", "development");
   const sessionSecret = env("SESSION_SECRET", "");
   if (nodeEnv === "production" && sessionSecret.length < 32) {
     throw new Error("SESSION_SECRET must be at least 32 chars in production.");
   }
+  const port = num("PORT", 8080);
+  const platformDomain = platformPublicDomain();
   const cfg: AppConfig = {
     nodeEnv,
-    port: num("PORT", 8080),
+    port,
+    host: env("HOST").trim() || "0.0.0.0",
     logLevel: env("LOG_LEVEL", "info"),
-    publicDomain: env("PUBLIC_DOMAIN", "localhost:8080"),
-    publicBaseUrl: env("PUBLIC_BASE_URL", `http://localhost:${num("PORT", 8080)}`),
+    publicDomain: env("PUBLIC_DOMAIN") || platformDomain || `localhost:${port}`,
+    publicBaseUrl: env("PUBLIC_BASE_URL") || (platformDomain ? `https://${platformDomain}` : `http://localhost:${port}`),
     trustProxy: env("TRUST_PROXY", "false") === "true",
     sessionSecret: sessionSecret || "dev-only-secret-not-for-production-0123456789",
     dataDir: env("DATA_DIR", "./data"),
