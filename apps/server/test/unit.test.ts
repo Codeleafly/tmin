@@ -8,6 +8,7 @@ import { validateClientFrame, validateServerFrame } from "../../../packages/prot
 import { hashPassword, verifyPassword } from "../../../packages/shared/src/passwords";
 import { loadConfig } from "../../../packages/shared/src/config";
 import { str, port as isPort, email } from "../../../packages/shared/src/validate";
+import { dashboardPage, adminPage, loginPage, registerPage, landingPage } from "../src/web/pages";
 
 describe("usernames", () => {
   it("normalizes case", () => {
@@ -26,7 +27,7 @@ describe("usernames", () => {
     assert.equal(validateUsername("bad-").ok, false);
     assert.equal(validateUsername("has space").ok, false);
     assert.equal(validateUsername("UPPEROK").ok, true); // case-insensitive accept
-    for (const r of ["api", "admin", "dashboard", "docs", "login", "health", "metrics", "tunnel"]) {
+    for (const r of ["api", "admin", "dashboard", "docs", "login", "health", "ready", "metrics", "tunnel"]) {
       const v = validateUsername(r);
       assert.equal(v.ok, false, r);
       if (!v.ok) assert.equal(v.code, "USERNAME_RESERVED");
@@ -71,6 +72,14 @@ describe("quota math", () => {
     assert.equal(quotaExhausted({ ...s, downloadUsed: 0, uploadUsed: 1000 }), "upload");
     assert.equal(quotaExhausted({ ...s, uploadLimit: -1, downloadLimit: -1 }), null);
   });
+  it("treats each limit independently (mixed unlimited)", () => {
+    const s = { uploadUsed: 10, downloadUsed: 500, uploadLimit: -1, downloadLimit: 1000, periodStart: "", periodEnd: "" };
+    assert.deepEqual(quotaRemaining(s), { uploadLeft: Number.MAX_SAFE_INTEGER, downloadLeft: 500 });
+    const t = { uploadUsed: 10, downloadUsed: 500, uploadLimit: 1000, downloadLimit: 0, periodStart: "", periodEnd: "" };
+    assert.deepEqual(quotaRemaining(t), { uploadLeft: 990, downloadLeft: Number.MAX_SAFE_INTEGER });
+    assert.equal(quotaExhausted({ ...s, downloadUsed: 1000 }), "download");
+    assert.equal(quotaExhausted({ ...t, uploadUsed: 1000 }), "upload");
+  });
   it("warn thresholds + formatting", () => {
     assert.equal(shouldWarn(800, 1000, 80), true);
     assert.equal(shouldWarn(799, 1000, 80), false);
@@ -106,6 +115,31 @@ describe("protocol validation", () => {
   it("validates server frames", () => {
     assert.equal(validateServerFrame({ type: "request_head", requestId: "a", method: "GET", path: "/", headers: {} }), null);
     assert.ok(validateServerFrame({ type: "request_head", requestId: "a", method: "BREW", path: "/", headers: {} }));
+  });
+  it("rejects non-finite heartbeat timestamps", () => {
+    assert.equal(validateClientFrame({ type: "heartbeat", at: Date.now() }), null);
+    assert.ok(validateClientFrame({ type: "heartbeat", at: NaN }));
+    assert.ok(validateClientFrame({ type: "heartbeat", at: Infinity }));
+    assert.ok(validateClientFrame({ type: "heartbeat" }));
+  });
+});
+
+describe("served pages", () => {
+  it("inline scripts parse as valid JavaScript", () => {
+    const pages: Array<[string, string]> = [
+      ["landing", landingPage("http://x")],
+      ["login", loginPage()],
+      ["register", registerPage()],
+      ["dashboard", dashboardPage()],
+      ["admin", adminPage()],
+    ];
+    for (const [name, html] of pages) {
+      const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+      assert.ok(scripts.length >= 1, `${name}: missing script tag`);
+      for (const s of scripts) {
+        assert.doesNotThrow(() => new Function(s), `${name}: inline script syntax error`);
+      }
+    }
   });
 });
 

@@ -52,7 +52,7 @@ export function explain(e: ApiError): string {
     case "QUOTA_EXCEEDED_DOWNLOAD":
       return "Daily bandwidth quota exhausted. See `tmin usage`. Resets at midnight UTC.";
     case "ANON_EXPIRED":
-      return "Anonymous session expired (30-minute limit). Start a new tunnel or `tmin login` for permanent URLs.";
+      return "Anonymous session expired. Start a new tunnel or `tmin login` for permanent URLs.";
     case "INVALID_CREDENTIALS":
       return "Invalid credentials. Try again.";
     case "TOKEN_REVOKED":

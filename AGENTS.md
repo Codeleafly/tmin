@@ -31,7 +31,7 @@ npm install                # one dep + types
 npm run build              # tsc -p tsconfig.json → dist/   (tests run from dist/)
 npm run typecheck
 npm run lint               # structural rules above
-npm test                   # 45 tests: unit, integration, e2e (real sockets), security, CLI, openapi
+npm test                   # 50 tests: unit, integration, e2e (real sockets), security, CLI, openapi
 npm run test:e2e           # real WS tunnel + real HTTP target
 npm run smoke              # spawns the real binary, checks public surfaces
 npm i -g .                 # global `tmin` command (prepare: build-if-stale + Termux shim)

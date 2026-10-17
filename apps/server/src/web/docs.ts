@@ -2,8 +2,8 @@
 
 const SECTIONS: Array<{ id: string; title: string; body: string }> = [
   { id: "start", title: "Getting started", body: `<p>Run your own server (see <a href="#deploy">deployment</a>), then:</p><pre>tmin config set server https://tunnel.example.com
-tmin http 3000 --anonymous   # instant 30-min link
-tmin login                   # browser-style device flow via token
+tmin http 3000 --anonymous   # instant short-lived link (default 30 min)
+tmin login                   # interactive sign-in (revocable token, stored 0600)
 tmin http 3000               # permanent https://SERVER/&lt;you&gt;</pre>` },
   { id: "arch", title: "Architecture", body: `<p>One Node process serves the REST API, the WebSocket control plane (<code>/tunnel</code>), the public gateway and the dashboards. The CLI dials <b>out</b>; public traffic rides that socket. The server never dials into your network. Live reachability lives in memory; route <b>ownership</b> lives in the JSON store (migrated, atomically written). See ARCHITECTURE.md in the repo.</p>` },
   { id: "install", title: "Installation", body: `<pre>git clone &lt;repo&gt; && cd tmin
@@ -15,7 +15,7 @@ tmin --help
 
 # no global install? run from the repo:
 npm run cli -- --help</pre>` },
-  { id: "anon", title: "Anonymous tunnels", body: `<p><code>tmin http 3000 --anonymous</code> returns <code>/a-xxxxxx</code>. The <b>server</b> sets expiry = start + 1800s; reconnecting with the resume token rejoins the <b>same</b> session without extending it. Offline anonymous paths return 404; expired return 410. Per-IP concurrency and body-size caps apply (see .env.example).</p>` },
+  { id: "anon", title: "Anonymous tunnels", body: `<p><code>tmin http 3000 --anonymous</code> returns <code>/a-xxxxxx</code>. The <b>server</b> sets expiry = start + <code>ANONYMOUS_TUNNEL_TTL_SECONDS</code> (default 1800s); reconnecting with the resume token rejoins the <b>same</b> session without extending it. Offline anonymous paths show the offline page (502); expired ones return 410. Per-IP concurrency and body-size caps apply (see .env.example).</p>` },
   { id: "accounts", title: "Registration and login", body: `<p>Register in the dashboard or <code>POST /api/v1/auth/register</code>. Usernames are lowercase-unique, 3–32 chars, <code>a-z 0-9 - _</code>, with system names reserved (<code>api admin dashboard docs login …</code>). Login sets an HttpOnly <code>tmin_sid</code> cookie; the CLI uses revocable bearer tokens (<code>tmin token create</code>).</p>` },
   { id: "named", title: "Named URLs", body: `<p>Your account owns <code>https://SERVER/&lt;username&gt;</code> forever. The route stays yours while offline (visitors see a friendly offline page); it never forwards to anyone else. Rename policy: only admins can rename, only with no live tunnels, fully audit-logged.</p>` },
   { id: "slots", title: "Multiple tunnels and route slots", body: `<pre>tmin http 3000          # → /you
@@ -39,7 +39,7 @@ SESSION_SECRET=… ADMIN_PASSWORD=… DATA_DIR=/var/lib/tmin npm start</pre><p>S
   { id: "security", title: "Security", body: `<p>Threat model, boundaries and controls: see SECURITY.md. Highlights: server-authoritative everything, segment-aware routing (no prefix capture), bounded buffers, fail-closed quota/auth, secret redaction, no stack traces in prod.</p>` },
   { id: "trouble", title: "Troubleshooting", body: `<pre>tmin doctor     # DNS, TLS, auth, version checks
 tmin status     # connection, URL, usage
-tmin usage --json</pre><p>Common: <code>ROUTE_OFFLINE</code> → start the CLI; <code>TUNNEL_LIMIT_REACHED</code> → stop a tunnel; <code>ANON_EXPIRED</code> → anonymous links die after 30 min by design.</p>` },
+tmin usage --json</pre><p>Common: <code>TUNNEL_LIMIT_REACHED</code> → stop a tunnel; <code>QUOTA_EXCEEDED_*</code> → daily bandwidth cap reached; <code>ANON_EXPIRED</code> → anonymous links expire by design (default 30 min). If a named path shows the offline page, (re)start your CLI.</p>` },
   { id: "monitor", title: "Operational monitoring", body: `<p><code>GET /health</code> (public), <code>GET /ready</code> (db check), <code>GET /api/v1/admin/metrics</code> (live tunnels, latency, error rate, bytes). Structured JSON logs with request correlation IDs.</p>` },
   { id: "faq", title: "FAQ", body: `<p><b>Does my URL change on reconnect?</b> No — registered URLs are permanent.<br><b>Can someone steal my offline route?</b> No — ownership is per-account in the database.<br><b>Why scrypt instead of argon2?</b> Zero native deps keeps installs tiny and reproducible; still memory-hard.<br><b>Horizontal scaling?</b> Not with the embedded store — single-server mode is supported; multi-instance needs Postgres (planned).</p>` },
 ];

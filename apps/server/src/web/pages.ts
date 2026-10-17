@@ -15,18 +15,19 @@ label{font-size:13px;color:#444}.grid{display:grid;grid-template-columns:repeat(
 </style></head><body><nav><a class="b" href="/">tmin</a><a href="/dashboard">Dashboard</a><a href="/admin">Admin</a><a href="/docs">Docs</a><a href="/openapi.json">OpenAPI</a></nav><main>${body}</main><script>${extra}</script></body></html>`;
 }
 
-export function landingPage(baseUrl: string): string {
+export function landingPage(baseUrl: string, anonTtlSeconds = 1800): string {
+  const ttlMin = Math.max(1, Math.round(anonTtlSeconds / 60));
   return layout("Self-hosted tunnels", `
 <h1>Expose localhost to the internet — on your own server.</h1>
-<p>tmin is a complete self-hosted tunneling platform: permanent <code>/username</code> URLs, 3 tunnel slots, anonymous 30-minute links, quotas, dashboards and a documented REST API.</p>
+<p>tmin is a complete self-hosted tunneling platform: permanent <code>/username</code> URLs, 3 tunnel slots, anonymous short-lived links, quotas, dashboards and a documented REST API.</p>
 <div class="card"><h3>Quick start</h3><pre>tmin http 3000 --anonymous
-# → https://YOUR-SERVER/a-xxxxxx  (expires in 30 min)
+# → https://YOUR-SERVER/a-xxxxxx  (expires in ${ttlMin} min)
 
 tmin login
 tmin http 3000
 # → ${baseUrl}/&lt;you&gt;  (permanent)</pre></div>
 <div class="grid">
-<div class="card"><div class="kpi">1800s</div><div class="muted">anonymous session TTL (server-enforced)</div></div>
+<div class="card"><div class="kpi">${anonTtlSeconds}s</div><div class="muted">anonymous session TTL (server-enforced)</div></div>
 <div class="card"><div class="kpi">3 slots</div><div class="muted">/you · /you/2 · /you/3</div></div>
 <div class="card"><div class="kpi">1 GB/day</div><div class="muted">default free bandwidth quota</div></div>
 </div>
@@ -63,7 +64,7 @@ export function dashboardPage(): string {
 async function load(){let m=await fetch('/api/v1/me');if(!m.ok){location.href='/login';return}
 let me=(await m.json()).user;document.getElementById('me').innerHTML='<b>'+me.username+'</b> · '+me.role+' · <code>'+me.baseUrl+'</code><br><span class=muted>max '+me.maxTunnels+' tunnels</span>';
 let t=await(await fetch('/api/v1/me/tunnels')).json();
-document.getElementById('t').innerHTML=t.tunnels.length?t.tunnels.map(x=>'<div><code>'+x.routePath+'</code> → '+x.label+' · <b class='+(x.status==='online'?'ok':'err')+'>'+x.status+'</b> · up '+(x.uptimeSeconds??'-')+'s · ↓'+x.downBytes+'B ↑'+x.upBytes+'B '+x.status==='online'? <button onclick="stopT(''+x.id+'')">Stop</button>:''+'</div>').join(''):'<span class=muted>No tunnels yet. Run <code>tmin http 3000</code></span>';
+document.getElementById('t').innerHTML=t.tunnels.length?t.tunnels.map(x=>'<div><code>'+x.routePath+'</code> → '+x.label+' · <b class='+(x.status==='online'?'ok':'err')+'>'+x.status+'</b> · up '+(x.uptimeSeconds??'-')+'s · ↓'+x.downBytes+'B ↑'+x.upBytes+'B '+(x.status==='online'? '<button onclick="stopT(\\''+x.id+'\\')">Stop</button>':'')+'</div>').join(''):'<span class=muted>No tunnels yet. Run <code>tmin http 3000</code></span>';
 let u=await(await fetch('/api/v1/me/usage')).json();
 document.getElementById('u').innerHTML='↑ '+u.usage.uploadUsed+' / '+lim(u.usage.uploadLimit)+' B &nbsp; ↓ '+u.usage.downloadUsed+' / '+lim(u.usage.downloadLimit)+' B<br><span class=muted>resets '+u.usage.periodEnd+'</span>';
 let r=await(await fetch('/api/v1/me/routes')).json();
@@ -92,7 +93,7 @@ export function adminPage(): string {
 <h2>Global quotas</h2><div class="card"><label>Max tunnels<input id="qt" type="number"></label><label>Upload bytes/day<input id="qu" type="number"></label><label>Download bytes/day<input id="qd" type="number"></label><button onclick="sq()">Save</button> <span id="qe"></span></div>
 <h2>Audit log</h2><div class="card"><input id="aq" placeholder="search…"><button onclick="la()">Search</button><div id="al"></div></div>
 <h2>Maintenance</h2><div class="card"><button onclick="mm(true)">Enable</button> <button onclick="mm(false)">Disable</button> <span id="me2"></span></div>`,
-`async function lu(){let r=await fetch('/api/v1/admin/users?search='+encodeURIComponent(q.value));if(!r.ok){document.getElementById('u').textContent='Forbidden (admin only)';return}let j=await r.json();document.getElementById('u').innerHTML=j.data.map(x=>'<div><code>'+x.username+'</code> '+x.role+' '+x.status+' <button onclick="sus(\\''+x.id+'\\','+(x.status==='active'?'\\'suspended\\'':'\\'active\\')+')">'+(x.status==='active'?'Suspend':'Activate')+'</button></div>').join('')}
+`async function lu(){let r=await fetch('/api/v1/admin/users?search='+encodeURIComponent(q.value));if(!r.ok){document.getElementById('u').textContent='Forbidden (admin only)';return}let j=await r.json();document.getElementById('u').innerHTML=j.data.map(x=>'<div><code>'+x.username+'</code> '+x.role+' '+x.status+' <button onclick="sus(\\''+x.id+'\\','+(x.status==='active'?'\\'suspended\\'':'\\'active\\'')+')">'+(x.status==='active'?'Suspend':'Activate')+'</button></div>').join('')}
 async function sus(id,st){await fetch('/api/v1/admin/users/'+id+'/status',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status:st})});lu()}
 async function load(){let h=await fetch('/api/v1/admin/health');if(!h.ok){document.getElementById('h').textContent='Admin only — login as admin first.';return}
 let j=await h.json();document.getElementById('h').innerHTML='live tunnels '+j.health.liveTunnels+' · users '+j.health.db.users+' · uptime '+j.health.uptimeSeconds+'s';

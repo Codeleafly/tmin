@@ -76,7 +76,7 @@ Legend: [x] done & verified · [~] partial · [ ] planned
 
 ## Current status
 
-All automated suites green: **45 tests / 19 suites**, `lint OK`, `smoke ALL CHECKS PASSED`.
+All automated suites green: **50 tests / 20 suites**, `lint OK`, `smoke ALL CHECKS PASSED`.
 Unverified in this environment: real Let's Encrypt issuance, multi-instance mode (not implemented), Playwright browser tests (not present — dashboards are server-rendered and exercised via API tests + smoke).
 
 ## Next priorities (ordered)

@@ -4,20 +4,17 @@ import { loadConfig, newRequestId } from "../../../packages/shared/src/index";
 import { Store } from "./db/store";
 import { logger } from "./logger";
 import { bootstrapAdmin } from "./auth/users";
-import { Store as _S } from "./db/store";
 import { handleTunnelSocket } from "./tunnels/handler";
 import { handlePublicRequest, handlePublicUpgrade, SYSTEM_PREFIXES } from "./gateway/router";
 import { handleAuth } from "./api/auth";
 import { handleApi } from "./api/resources";
 import { handleAdmin } from "./api/admin";
 import { buildOpenApi } from "./api/openapi";
-import { sendJson, sendError, clientIp } from "./http";
+import { sendJson, sendError, sendHtml, clientIp } from "./http";
 import { landingPage, loginPage, registerPage, dashboardPage, adminPage } from "./web/pages";
 import { docsPage } from "./web/docs";
 import { recoverAfterRestart, startSweeper } from "./sweeper";
 import { RateLimiter } from "./middleware/ratelimit";
-
-void _S;
 
 export interface Started {
   port: number;
@@ -31,6 +28,13 @@ export async function start(): Promise<Started> {
   const store = await Store.open(cfg.dataDir, cfg.dataFile);
   recoverAfterRestart(store);
   await bootstrapAdmin(store, cfg);
+  // MAINTENANCE_MODE=true starts the server closed to public tunnel traffic
+  // (admin API and /health stay up so it can be turned off again).
+  if (cfg.maintenanceMode && !store.db.settings.maintenanceMode) {
+    store.db.settings.maintenanceMode = true;
+    store.markDirty();
+    logger.info("maintenance mode enabled from MAINTENANCE_MODE env", {});
+  }
   startSweeper(store, cfg);
 
   const authLimiter = new RateLimiter(cfg.rateAuthPerMin);
@@ -124,7 +128,7 @@ export async function start(): Promise<Started> {
         return;
       }
       if (await handleAuth(req, res, store, cfg, pathname, requestId)) return;
-      if (await handleApi(req, res, store, cfg, pathname, query, requestId)) return;
+      if (await handleApi(req, res, store, cfg, pathname, requestId)) return;
       if (await handleAdmin(req, res, store, cfg, pathname, query, requestId)) return;
       if (method === "GET" && pathname === "/api/v1/openapi.json") {
         sendJson(res, 200, buildOpenApi(cfg.publicBaseUrl), requestId);
@@ -134,19 +138,26 @@ export async function start(): Promise<Started> {
       return;
     }
     if (method === "GET" && pathname === "/openapi.json") {
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify(buildOpenApi(cfg.publicBaseUrl), null, 2));
+      const spec = JSON.stringify(buildOpenApi(cfg.publicBaseUrl), null, 2);
+      res.writeHead(200, {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": Buffer.byteLength(spec),
+        "x-request-id": requestId,
+        "cache-control": "no-store",
+      });
+      res.end(spec);
       return;
     }
     // 4. Web UI + docs.
     if (method === "GET" && pathname === "/") {
-      return void res.end(landingPage(cfg.publicBaseUrl));
+      sendHtml(res, landingPage(cfg.publicBaseUrl, cfg.anonymousTtlSeconds));
+      return;
     }
-    if (method === "GET" && pathname === "/login") return void res.end(loginPage());
-    if (method === "GET" && pathname === "/register") return void res.end(registerPage());
-    if (method === "GET" && pathname === "/dashboard") return void res.end(dashboardPage());
-    if (method === "GET" && pathname === "/admin") return void res.end(adminPage());
-    if (method === "GET" && (pathname === "/docs" || pathname.startsWith("/docs/"))) return void res.end(docsPage());
+    if (method === "GET" && pathname === "/login") return sendHtml(res, loginPage());
+    if (method === "GET" && pathname === "/register") return sendHtml(res, registerPage());
+    if (method === "GET" && pathname === "/dashboard") return sendHtml(res, dashboardPage());
+    if (method === "GET" && pathname === "/admin") return sendHtml(res, adminPage());
+    if (method === "GET" && (pathname === "/docs" || pathname.startsWith("/docs/"))) return sendHtml(res, docsPage());
     // 5. Reserved/system paths never forward to tunnels.
     if (SYSTEM_PREFIXES.has(first)) {
       sendError(res, "NOT_FOUND", "Not found.", undefined, requestId);

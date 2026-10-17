@@ -95,7 +95,8 @@ async function main(): Promise<number> {
   let cfg = await loadConfig();
 
   if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
-    console.log(json ? JSON.stringify({ version: VERSION, commands: ["http", "login", "logout", "status"] }) : help());
+    const commands = ["http", "login", "logout", "status", "tunnels", "stop", "token", "account", "usage", "route", "config", "doctor", "update", "version"];
+    console.log(json ? JSON.stringify({ version: VERSION, commands }) : help());
     return 0;
   }
 
@@ -135,13 +136,13 @@ async function main(): Promise<number> {
           console.error("Login and password are required.");
           return 2;
         }
-        const { cookieOut } = await api<{ user: { username: string } }>(cfg, "POST", "/api/v1/auth/login", { login, password });
-        const cookie = (cookieOut || "").split(";")[0];
+        const loginRes = await api<{ user: { username: string } }>(cfg, "POST", "/api/v1/auth/login", { login, password });
+        const cookie = (loginRes.cookieOut || "").split(";")[0];
         const name = `cli-${new Date().toISOString().slice(0, 10)}`;
         const created = await api<{ token: { id: string; prefix: string }; secret: string }>(cfg, "POST", "/api/v1/tokens", { name }, cookie);
         cfg.token = created.data.secret;
         cfg.tokenPrefix = created.data.token.prefix;
-        cfg.username = login.toLowerCase();
+        cfg.username = loginRes.data.user.username;
         await saveConfig(cfg);
         console.log(json ? JSON.stringify({ ok: true, user: cfg.username }) : `Logged in as ${cfg.username} (token ${created.data.token.prefix}…, stored in ${configPath()}).`);
         return 0;

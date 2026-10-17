@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { verifyPassword, hashPassword, isRecord, str, newRequestId, type AppConfig } from "../../../../packages/shared/src/index";
+import { verifyPassword, hashPassword, isRecord, str, type AppConfig } from "../../../../packages/shared/src/index";
 import type { Store } from "../db/store";
 import { sendJson, sendError, readJsonBody, clientIp } from "../http";
 import { registerUser, findUserByLogin, publicUser } from "../auth/users";
@@ -41,8 +41,6 @@ export async function handleAuth(
       sendJson(res, 201, { user: publicUser(user, cfg) }, requestId);
     } catch (e: unknown) {
       const code = errCode(e) as Parameters<typeof sendError>[1];
-      const status = code === "USERNAME_TAKEN" || code === "CONFLICT" ? undefined : undefined;
-      void status;
       sendError(res, code, (e as Error).message, undefined, requestId);
     }
     return true;
@@ -78,7 +76,7 @@ export async function handleAuth(
       });
     });
     audit(store, { actorId: user.id, actor: user.usernameLower, action: "auth.login", target: user.id, result: "ok", ip });
-    res.setHeader("set-cookie", buildSessionCookie(secret, cfg.sessionSecret, secure));
+    res.setHeader("set-cookie", buildSessionCookie(secret, secure));
     sendJson(res, 200, { user: publicUser(user, cfg) }, requestId);
     return true;
   }
@@ -207,5 +205,3 @@ function parseAuthCookie(req: IncomingMessage): string | null {
   }
   return null;
 }
-
-export { newRequestId };

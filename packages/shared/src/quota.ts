@@ -15,10 +15,10 @@ export interface QuotaState {
 }
 
 export function quotaRemaining(state: QuotaState): { uploadLeft: number; downloadLeft: number } {
-  if (state.uploadLimit <= 0) return { uploadLeft: Number.MAX_SAFE_INTEGER, downloadLeft: Number.MAX_SAFE_INTEGER };
+  // Limits <= 0 mean unlimited (0 = plan default is resolved by the server; -1 = admin).
   return {
-    uploadLeft: Math.max(0, state.uploadLimit - state.uploadUsed),
-    downloadLeft: Math.max(0, state.downloadLimit - state.downloadUsed),
+    uploadLeft: state.uploadLimit > 0 ? Math.max(0, state.uploadLimit - state.uploadUsed) : Number.MAX_SAFE_INTEGER,
+    downloadLeft: state.downloadLimit > 0 ? Math.max(0, state.downloadLimit - state.downloadUsed) : Number.MAX_SAFE_INTEGER,
   };
 }
 

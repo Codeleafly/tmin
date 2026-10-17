@@ -93,11 +93,6 @@ export function allLive(): LiveTunnel[] {
   return [...idx.byId.values()];
 }
 
-/** Reconcile: is a DB tunnel row actually live? */
-export function isLive(tunnelId: string): boolean {
-  return idx.byId.has(tunnelId);
-}
-
 export function touchHeartbeat(t: LiveTunnel, now = Date.now()): void {
   t.lastHeartbeat = now;
 }

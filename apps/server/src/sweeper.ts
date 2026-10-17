@@ -48,7 +48,6 @@ export function startSweeper(store: Store, cfg: AppConfig): NodeJS.Timeout {
     }
   }, 5000);
   f.unref?.();
-  void f;
   return t;
 }
 
@@ -64,7 +63,7 @@ export function sweepOnce(store: Store, cfg: AppConfig, now = Date.now()): { exp
         const live = allLive().find((l) => l.id === s.tunnelId);
         if (live) {
           try {
-            live.ws.send(JSON.stringify({ type: "shutdown", reason: "Anonymous session expired after 1800s.", reconnectMs: 0 }));
+            live.ws.send(JSON.stringify({ type: "shutdown", reason: `Anonymous session expired after ${Math.round(cfg.anonymousTtlSeconds)}s.`, reconnectMs: 0 }));
             live.ws.close(4410, "anon-expired");
           } catch {
             undefined;

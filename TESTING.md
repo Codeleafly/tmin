@@ -6,7 +6,7 @@
 npm run build            # required before tests (tests run from dist/)
 npm run typecheck
 npm run lint
-npm test                 # everything (45 tests / 19 suites)
+npm test                 # everything (50 tests / 20 suites)
 npm run test:unit        # username/route/quota/protocol/password/config rules
 npm run test:integration # accounts, limits, allocation, quota persistence, recovery
 npm run test:e2e         # real HTTP + WS forwarding through a real tunnel
@@ -17,13 +17,13 @@ Reports are plain `node --test` output; suites run from `dist/apps/server/test/*
 
 ## What each suite proves
 
-**unit.test.ts (18)** — username normalization/reserved names/`a-` namespace; segment-aware route parsing (`/myapp` vs `/myapp2` vs `/myapp/22`); quota math + warning thresholds; error→status mapping; protocol frame validation incl. oversized/bad-base64 bodies; scrypt roundtrip; config fail-fast (production secret, TTL bounds).
+**unit.test.ts (21)** — username normalization/reserved names (incl. `ready`)/`a-` namespace; segment-aware route parsing (`/myapp` vs `/myapp2` vs `/myapp/22`); quota math incl. mixed limited/unlimited pairs + warning thresholds; error→status mapping; protocol frame validation incl. oversized/bad-base64 bodies and non-finite heartbeat timestamps; scrypt roundtrip; config fail-fast (production secret, TTL bounds); every served page's inline script parses as valid JavaScript (`new Function`).
 
 **integration.test.ts (8)** — register/duplicate/reserved; login generic failures; tokens (list never shows secrets, revoke = instant 401); sessions; password change + reset (single-use token, old sessions revoked); **3-tunnel limit** (3 live, 4th refused `TUNNEL_LIMIT_REACHED`, frees after stop); **concurrent slot allocation** (10 parallel allocations → 1 row); route release refused while live; **quota exhaustion → 429** and persisted usage row; restart recovery marks stale rows.
 
-**e2e.test.ts (8)** — all methods + query/headers/cookies/redirects preserved; HEAD; 2 MiB download stream; 512 KiB upload; 20 simultaneous requests with no response mix-up; offline page + 404; **WebSocket upgrade bridged bidirectionally** (message before local accept — regression-tested); upstream timeout → 504; **anonymous** serves → resume keeps the *same* `expiresAt` → after TTL: expired, unchanged row, requests rejected.
+**e2e.test.ts (9)** — all methods + query/headers/cookies/redirects preserved; forwarded headers reflect the real hop (`x-forwarded-proto: http`, real client IP); HEAD; 2 MiB download stream; 512 KiB upload; 20 simultaneous requests with no response mix-up; offline page + 404; **WebSocket upgrade bridged bidirectionally** (message before local accept — regression-tested); upstream timeout → 504; **anonymous** serves → resume keeps the *same* `expiresAt` → after TTL: `410 ANON_EXPIRED`, unchanged row; per-IP anon limit + abuse cooldown (`ANONYMOUS_ABUSE_BLOCK_SECONDS`) refuses new sessions even after the first ends.
 
-**security.test.ts (6)** — cross-user route/tunnel access (404), per-user route isolation, non-admin 403 / anonymous 401; admin suspend kills tunnel + blocks login + audit row; self-demotion refused; token revoke blocks tunnel auth; reserved/lookalike usernames; encoded-path cases; oversized API body; malformed WS frames; maintenance mode fail-closed.
+**security.test.ts (7)** — cross-user route/tunnel access (404), per-user route isolation, non-admin 403 / anonymous 401; admin suspend kills tunnel + blocks login + audit row; self-demotion refused; token revoke blocks tunnel auth; reserved/lookalike usernames (incl. `Ready`); encoded-path cases; oversized API body; malformed WS frames; maintenance mode fail-closed; `MAINTENANCE_MODE=true` env boots fail-closed and is reflected in `/ready`.
 
 **cli.test.ts (3)** — spawns the real CLI: connects (real token auth), serves traffic, **server-side socket kill → CLI reconnects to the SAME URL** (backoff), clean `SIGINT` exit; anonymous CLI exits(1) after server-side expiry with a single registration; `doctor --json` passes against a healthy server.
 

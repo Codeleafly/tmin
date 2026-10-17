@@ -7,7 +7,7 @@ const USERNAME_RE = /^[a-z0-9](?:[a-z0-9-_]{1,30}[a-z0-9])?$/;
 
 export const RESERVED_NAMES = new Set([
   "api", "admin", "dashboard", "docs", "login", "logout", "assets",
-  "health", "metrics", "tunnel", "tunnels", "favicon", "static",
+  "health", "ready", "metrics", "tunnel", "tunnels", "favicon", "static",
   "www", "mail", "root", "support", "status", "help", "about",
   "settings", "config", "auth", "register", "signup", "signin",
   "websocket", "ws", "public", "private", "null", "undefined",

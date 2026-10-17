@@ -7,7 +7,7 @@ export interface CliConfig {
   token: string | null;
   tokenPrefix: string | null;
   username: string | null;
-  anonResume: Record<string, string>; // routePath -> resumeToken
+  anonResume: Record<string, string>; // "anon:<server>" -> resumeToken
 }
 
 const DIR = path.join(os.homedir(), ".tmin");
@@ -42,10 +42,9 @@ export async function loadConfig(): Promise<CliConfig> {
 
 export async function saveConfig(c: CliConfig): Promise<void> {
   await fs.mkdir(DIR, { recursive: true, mode: 0o700 });
-  const toSave = { ...c, token: c.token, server: c.server };
-  // Never persist env-provided token to disk.
-  if (process.env.TMIN_TOKEN) toSave.token = null;
-  await fs.writeFile(FILE + ".tmp", JSON.stringify({ ...toSave, token: process.env.TMIN_TOKEN ? undefined : toSave.token }, null, 2), { mode: 0o600 });
+  // Never persist an env-provided token to disk.
+  const toSave: CliConfig = { ...c, token: process.env.TMIN_TOKEN ? null : c.token };
+  await fs.writeFile(FILE + ".tmp", JSON.stringify(toSave, null, 2), { mode: 0o600 });
   await fs.rename(FILE + ".tmp", FILE);
   try {
     await fs.chmod(FILE, 0o600);

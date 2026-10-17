@@ -4,7 +4,7 @@ import type { Socket } from "node:net";
 import WebSocket from "ws";
 import { parsePublicPath, newRequestId, type AppConfig } from "../../../../packages/shared/src/index";
 import type { Store } from "../db/store";
-import { sendError } from "../http";
+import { sendError, clientIp } from "../http";
 import { liveByRoute, type LiveTunnel } from "../tunnels/registry";
 import { dispatchToTunnel } from "../tunnels/handler";
 import { snapshotFor, quotaBlockReason, addUsage } from "../usage";
@@ -13,7 +13,7 @@ import { newId } from "../../../../packages/shared/src/index";
 
 export const SYSTEM_PREFIXES = new Set([
   "api", "admin", "dashboard", "docs", "login", "logout", "assets",
-  "health", "metrics", "tunnel", "tunnels", "favicon",
+  "health", "ready", "metrics", "tunnel", "tunnels", "favicon",
 ]);
 
 const HOP_BY_HOP = new Set([
@@ -96,9 +96,13 @@ export async function handlePublicRequest(req: IncomingMessage, res: ServerRespo
   let adm: Admission | null = null;
   if (parsed.username.startsWith("a-")) {
     // Anonymous routes: token namespace reserved at registration (usernames may not start with "a-").
-    const found = admitAnon(store, parsed.username, requestId);
+    const found = admitAnon(store, parsed.username);
+    if (found === "expired") {
+      sendError(res, "ANON_EXPIRED", "Anonymous session expired.", undefined, requestId);
+      return;
+    }
     if (!found) {
-      sendError(res, "NOT_FOUND", "Anonymous route not found or expired.", undefined, requestId);
+      sendError(res, "NOT_FOUND", "Anonymous route not found.", undefined, requestId);
       return;
     }
     if (!found.tunnel) {
@@ -159,8 +163,11 @@ export async function handlePublicRequest(req: IncomingMessage, res: ServerRespo
   const fwdPath = (parsed.rest || "/") + (rawUrl.includes("?") ? "?" + rawUrl.split("?").slice(1).join("?") : "");
   const headers = cleanHeaders(req.headers);
   headers["x-request-id"] = requestId;
-  headers["x-forwarded-for"] = req.socket.remoteAddress || "unknown";
-  headers["x-forwarded-proto"] = "https";
+  headers["x-forwarded-for"] = clientIp(req, cfg.trustProxy);
+  const inboundProto = req.headers["x-forwarded-proto"];
+  headers["x-forwarded-proto"] = cfg.trustProxy && typeof inboundProto === "string" && inboundProto.length > 0
+    ? inboundProto.split(",")[0].trim()
+    : "http";
 
   const wsUpgrade = (req.headers.upgrade || "").toLowerCase() === "websocket";
   if (wsUpgrade) {
@@ -230,9 +237,11 @@ interface AnonAdmission {
   ownerName: string;
 }
 
-function admitAnon(store: Store, token: string, _requestId: string): AnonAdmission | null {
+/** Returns the admission, "expired" when the session row exists but is no longer active, or null. */
+function admitAnon(store: Store, token: string): AnonAdmission | "expired" | null {
   const sess = store.db.anonSessions.find((s) => s.pathToken === token);
-  if (!sess || sess.status !== "active" || sess.expiresAt <= Date.now()) return null;
+  if (!sess) return null;
+  if (sess.status !== "active" || sess.expiresAt <= Date.now()) return "expired";
   const routePath = `/${sess.pathToken}`;
   const tunnel = liveByRoute(routePath) ?? null;
   return { tunnel, userId: null, anonSessionId: sess.id, routeId: sess.id, routePath, ownerName: "anonymous" };
@@ -319,7 +328,12 @@ export function handlePublicUpgrade(req: IncomingMessage, socket: Socket, head: 
     socket.destroy();
     return;
   }
-  if (!parsed || store.db.settings.maintenanceMode) {
+  if (store.db.settings.maintenanceMode) {
+    socket.write("HTTP/1.1 503 Service Unavailable\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+  if (!parsed) {
     socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
     socket.destroy();
     return;
@@ -329,8 +343,13 @@ export function handlePublicUpgrade(req: IncomingMessage, socket: Socket, head: 
   let userId: string | null = null;
   if (parsed.username.startsWith("a-")) {
     const sess = store.db.anonSessions.find((s) => s.pathToken === parsed!.username);
-    if (!sess || sess.status !== "active" || sess.expiresAt <= Date.now()) {
+    if (!sess) {
       socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+    if (sess.status !== "active" || sess.expiresAt <= Date.now()) {
+      socket.write("HTTP/1.1 410 Gone\r\n\r\n");
       socket.destroy();
       return;
     }
@@ -370,7 +389,7 @@ export function handlePublicUpgrade(req: IncomingMessage, socket: Socket, head: 
     return;
   }
   wss.handleUpgrade(req, socket, head, (publicWs) => {
-    bridgeWs(publicWs, tunnel!, parsed!, req, deps, userId, routePath);
+    bridgeWs(publicWs, tunnel!, parsed!, req, deps, userId);
   });
 }
 
@@ -381,13 +400,17 @@ function bridgeWs(
   req: IncomingMessage,
   deps: GatewayDeps,
   userId: string | null,
-  routePath: string,
 ): void {
   const { cfg } = deps;
   const requestId = newRequestId();
   const started = Date.now();
   const fwdPath = (parsed.rest || "/") + ((req.url || "").includes("?") ? "?" + (req.url || "").split("?").slice(1).join("?") : "");
   const headers = cleanHeaders(req.headers);
+  const inboundProto = req.headers["x-forwarded-proto"];
+  headers["x-forwarded-for"] = clientIp(req, cfg.trustProxy);
+  headers["x-forwarded-proto"] = cfg.trustProxy && typeof inboundProto === "string" && inboundProto.length > 0
+    ? inboundProto.split(",")[0].trim()
+    : "http";
   const deadline = started + cfg.wsMaxLifetimeSeconds * 1000;
   let closed = false;
   let upBytes = 0;
@@ -401,7 +424,9 @@ function bridgeWs(
     body: [],
     bodyBytes: 0,
     resolve: () => undefined,
-    reject: () => undefined,
+    // A tunnel-side failure (response_error / disconnect) must never leave the
+    // public socket open until the lifetime cap: close it immediately.
+    reject: () => cleanup(1011, "tunnel error"),
     timer: setTimeout(() => cleanup(4408, "ws accept timeout"), cfg.requestTimeoutMs),
     wsUpgrade: true,
     wsSocket: publicWs,
@@ -461,7 +486,6 @@ function bridgeWs(
     } catch {
       undefined;
     }
-    void routePath;
   }
 
   // Tunnel -> public direction arrives via handler's ws_frame path; patch counter hook:

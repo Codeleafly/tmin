@@ -20,16 +20,6 @@ export async function allocateRoute(store: Store, userId: string, usernameLower:
   });
 }
 
-export async function releaseRoute(store: Store, userId: string, slot: number, isAdmin: boolean): Promise<boolean> {
-  return store.tx(() => {
-    const i = store.db.routes.findIndex((r) => (isAdmin || r.userId === userId) && (isAdmin ? true : r.userId === userId) && r.slot === slot);
-    // For admin, slot alone is ambiguous — admin API passes explicit route id instead.
-    if (i < 0) return false;
-    store.db.routes.splice(i, 1);
-    return true;
-  });
-}
-
 export function routesForUser(store: Store, userId: string): RouteRow[] {
   return store.db.routes.filter((r) => r.userId === userId).sort((a, b) => a.slot - b.slot);
 }

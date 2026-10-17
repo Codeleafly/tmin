@@ -321,7 +321,14 @@ export async function startTarget(): Promise<{ port: number; close: () => Promis
       const body = Buffer.concat(chunks);
       if (u.pathname === "/echo") {
         res.writeHead(200, { "content-type": "application/json", "x-echo": "1", "set-cookie": "sid=abc; Path=/" });
-        res.end(JSON.stringify({ method: req.method, path: u.pathname + u.search, body: body.toString("utf8"), xTest: req.headers["x-test"] || null }));
+        res.end(JSON.stringify({
+          method: req.method,
+          path: u.pathname + u.search,
+          body: body.toString("utf8"),
+          xTest: req.headers["x-test"] || null,
+          xfProto: req.headers["x-forwarded-proto"] || null,
+          xff: req.headers["x-forwarded-for"] || null,
+        }));
       } else if (u.pathname.startsWith("/status/")) {
         const code = Number(u.pathname.split("/")[2]) || 200;
         res.writeHead(code, { "content-type": "text/plain" });

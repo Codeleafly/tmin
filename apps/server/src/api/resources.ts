@@ -1,23 +1,14 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { isRecord, str, newRequestId, type AppConfig } from "../../../../packages/shared/src/index";
+import { isRecord, newId, routePathFor, publicUrlFor, formatBytes, type AppConfig } from "../../../../packages/shared/src/index";
 import type { Store } from "../db/store";
 import { sendJson, sendError, readJsonBody, clientIp } from "../http";
 import { resolveAuth, requireUser } from "../auth/context";
 import { publicUser } from "../auth/users";
 import { newBearerToken, sha256Hex } from "../auth/secrets";
 import { audit } from "../auth/audit";
-import { snapshotFor, readUsage } from "../usage";
+import { snapshotFor } from "../usage";
 import { liveForUser, liveById, unregisterLive } from "../tunnels/registry";
 import { allocateRoute, routesForUser } from "../tunnels/routes";
-import { routePathFor, publicUrlFor, formatBytes } from "../../../../packages/shared/src/index";
-import { newId } from "../../../../packages/shared/src/index";
-
-function pageOf<T>(items: T[], query: URLSearchParams): { data: T[]; page: number; limit: number; total: number } {
-  const page = Math.max(1, Number(query.get("page") || 1));
-  const limit = Math.min(100, Math.max(1, Number(query.get("limit") || 20)));
-  const start = (page - 1) * limit;
-  return { data: items.slice(start, start + limit), page, limit, total: items.length };
-}
 
 export async function handleApi(
   req: IncomingMessage,
@@ -25,7 +16,6 @@ export async function handleApi(
   store: Store,
   cfg: AppConfig,
   path: string,
-  query: URLSearchParams,
   requestId: string,
 ): Promise<boolean> {
   const method = (req.method || "GET").toUpperCase();
@@ -375,8 +365,6 @@ export async function handleApi(
     }
   }
 
-  void newRequestId;
-  void str;
   return false;
 }
 

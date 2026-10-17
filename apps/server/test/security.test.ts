@@ -97,7 +97,7 @@ describe("input + protocol abuse", () => {
   });
 
   it("reserved/lookalike names and encoded paths can't capture traffic", async () => {
-    for (const n of ["API", "Admin", "Docs", "Health"]) {
+    for (const n of ["API", "Admin", "Docs", "Health", "Ready"]) {
       assert.equal((await post(s.base, "/api/v1/auth/register", { username: n, email: `${n}@x.com`, password: "Password1!" })).status, 400);
     }
     const { cookie } = await mkUser(s.base, "myapp");
@@ -147,5 +147,19 @@ describe("input + protocol abuse", () => {
     assert.equal((await http(s.base, "GET", "/nope")).status, 503);
     assert.equal((await http(s.base, "GET", "/health")).status, 200);
     await http(s.base, "POST", "/api/v1/admin/maintenance", { cookie: loginRaw, body: JSON.stringify({ enabled: false }), headers: { "content-type": "application/json" } });
+  });
+
+  it("MAINTENANCE_MODE env boots fail-closed and is reflected in /ready", async () => {
+    const m = await boot({ MAINTENANCE_MODE: "true" });
+    try {
+      assert.equal(m.store.db.settings.maintenanceMode, true);
+      assert.equal((await http(m.base, "GET", "/nope")).status, 503);
+      assert.equal((await http(m.base, "GET", "/health")).status, 200);
+      const ready = await http(m.base, "GET", "/ready");
+      assert.equal(ready.status, 200);
+      assert.equal((ready.json as { maintenance: boolean }).maintenance, true);
+    } finally {
+      await m.close();
+    }
   });
 });

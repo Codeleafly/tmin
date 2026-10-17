@@ -4,8 +4,8 @@
  * Server NEVER dials into the developer's network.
  */
 import type WebSocket from "ws";
-import { PROTOCOL_VERSION, validateClientFrame, asClientFrame, encodeChunk } from "../../../../packages/protocol/src/index";
-import { parsePublicPath, newId, newRequestId, type AppConfig } from "../../../../packages/shared/src/index";
+import { PROTOCOL_VERSION, validateClientFrame, asClientFrame } from "../../../../packages/protocol/src/index";
+import { newId, type AppConfig } from "../../../../packages/shared/src/index";
 import type { Store } from "../db/store";
 import { logger } from "../logger";
 import { sha256Hex, anonPathToken, ipHash, newBearerToken } from "../auth/secrets";
@@ -13,7 +13,6 @@ import { audit } from "../auth/audit";
 import {
   registerLive,
   unregisterLive,
-  liveById,
   liveForUser,
   touchHeartbeat,
   type LiveTunnel,
@@ -38,6 +37,8 @@ interface HelloState {
 }
 
 const anonResumeSecrets = new Map<string, string>(); // hash -> sessionId (single process; documented)
+// Per-IP cooldown applied when the anonymous limit is hit (ANONYMOUS_ABUSE_BLOCK_SECONDS).
+const anonBlocks = new Map<string, number>(); // ipHash -> blockUntil (epoch ms)
 
 export function handleTunnelSocket(ws: WebSocket, deps: TunnelDeps, ip: string): void {
   const { store, cfg } = deps;
@@ -189,14 +190,23 @@ export function handleTunnelSocket(ws: WebSocket, deps: TunnelDeps, ip: string):
       log.info("tunnel hello (token)", { user: user.usernameLower });
     } else {
       // Anonymous: abuse controls first.
-      const active = store.db.anonSessions.filter((s) => s.status === "active" && s.expiresAt > Date.now());
-      const perIp = active.filter((s) => s.ipHash === ipHash(ipAddr, cfg.sessionSecret)).length;
-      if (perIp >= cfg.anonymousMaxPerIp) {
-        send(ws, { type: "error", code: "ANON_LIMIT_REACHED", message: "Too many anonymous sessions from this address.", fatal: true });
+      const now = Date.now();
+      const iph = ipHash(ipAddr, cfg.sessionSecret);
+      const blockedUntil = anonBlocks.get(iph) ?? 0;
+      if (blockedUntil > now) {
+        send(ws, { type: "error", code: "ANON_LIMIT_REACHED", message: "Too many anonymous sessions from this address. Try again later.", fatal: true });
         ws.close(4429, "anon-limit");
         return;
       }
+      if (blockedUntil > 0) anonBlocks.delete(iph);
+      // Drop resume secrets whose sessions ended; keeps the map bounded.
+      for (const [h, sid] of anonResumeSecrets) {
+        const s = store.db.anonSessions.find((x) => x.id === sid);
+        if (!s || s.status !== "active" || s.expiresAt <= now) anonResumeSecrets.delete(h);
+      }
       // Resume path: same session, ORIGINAL expiry preserved (never extended).
+      // Checked before the per-IP cap: reconnecting to your own session must not
+      // be refused or push the IP into the abuse cooldown.
       const resume = (frame.auth as { resumeToken?: string }).resumeToken;
       if (typeof resume === "string" && resume.length > 0) {
         const sid = anonResumeSecrets.get(sha256Hex(resume));
@@ -218,12 +228,20 @@ export function handleTunnelSocket(ws: WebSocket, deps: TunnelDeps, ip: string):
           return;
         }
       }
-      const now = Date.now();
+      // New session: enforce the per-IP cap (with abuse cooldown).
+      const active = store.db.anonSessions.filter((s) => s.status === "active" && s.expiresAt > now);
+      const perIp = active.filter((s) => s.ipHash === iph).length;
+      if (perIp >= cfg.anonymousMaxPerIp) {
+        if (cfg.anonymousAbuseBlockSeconds > 0) anonBlocks.set(iph, now + cfg.anonymousAbuseBlockSeconds * 1000);
+        send(ws, { type: "error", code: "ANON_LIMIT_REACHED", message: "Too many anonymous sessions from this address.", fatal: true });
+        ws.close(4429, "anon-limit");
+        return;
+      }
       const sess = {
         id: newId("anon"),
         pathToken: anonPathToken(),
         tunnelId: null as string | null,
-        ipHash: ipHash(ipAddr, cfg.sessionSecret),
+        ipHash: iph,
         createdAt: now,
         expiresAt: now + cfg.anonymousTtlSeconds * 1000,
         status: "active" as const,
@@ -483,10 +501,6 @@ export function handleTunnelSocket(ws: WebSocket, deps: TunnelDeps, ip: string):
       // Local side accepted the upgrade; nothing to do (socket already open).
     }
   }
-
-  void parsePublicPath;
-  void liveById;
-  void addUsage;
 }
 
 function failPending(t: LiveTunnel, p: PendingRequest, code: string): void {
@@ -580,10 +594,4 @@ export async function dispatchToTunnel(
       reject(e);
     }
   });
-}
-
-export function dispatchWsOpen(t: LiveTunnel, requestId: string, method: string, path: string, headers: Record<string, string>): void {
-  t.ws.send(JSON.stringify({ type: "request_head", requestId, method, path, headers, wsUpgrade: true }));
-  void encodeChunk;
-  void newRequestId;
 }

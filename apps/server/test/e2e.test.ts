@@ -38,6 +38,10 @@ describe("real end-to-end forwarding", () => {
     // cookies + redirects preserved
     const e = await http(s.base, "GET", "/gita/echo");
     assert.ok((e.headers["set-cookie"] || "").includes("sid=abc"));
+    // forwarded headers reflect the real hop (not a hardcoded "https")
+    const xf = (await http(s.base, "GET", "/gita/echo")).json as { xfProto: string; xff: string };
+    assert.equal(xf.xfProto, "http");
+    assert.ok(xf.xff.includes("127.0.0.1"));
     const red = await http(s.base, "GET", "/gita/redirect");
     assert.equal(red.status, 302);
     assert.equal(red.headers.location, "/echo?from=redirect");
@@ -141,7 +145,8 @@ describe("anonymous lifecycle", () => {
     // wait past TTL → gone (sweeper runs every 300ms in tests)
     await sleep(2500);
     const afterExp = await http(s.base, "GET", `${r.routePath}/echo`);
-    assert.ok([404, 410, 502].includes(afterExp.status), `got ${afterExp.status}`);
+    assert.equal(afterExp.status, 410, "expired anonymous path must answer 410 Gone");
+    assert.equal((afterExp.json as { error: { code: string } }).error.code, "ANON_EXPIRED");
     const row = s.store.db.anonSessions.find((x) => x.pathToken === r.routePath.slice(1));
     assert.equal(row?.status, "expired");
   });
@@ -150,5 +155,32 @@ describe("anonymous lifecycle", () => {
     const a = new TunnelClient(s.base, target.port, { anonymous: true, slot: 2 });
     await assert.rejects(() => a.registered);
     a.close();
+  });
+
+  it("per-IP anon limit refuses new sessions but allows resume; cooldown then blocks the IP", async () => {
+    const ab = await boot({ ANONYMOUS_MAX_PER_IP: "1", ANONYMOUS_ABUSE_BLOCK_SECONDS: "60", ANONYMOUS_TUNNEL_TTL_SECONDS: "60" });
+    const tgt = await startTarget();
+    try {
+      const a = new TunnelClient(ab.base, tgt.port, { anonymous: true });
+      const r = await a.registered;
+      a.close();
+      await sleep(200);
+      // reconnecting to your own session works even at the cap
+      const a2 = new TunnelClient(ab.base, tgt.port, { anonymous: true, resumeToken: r.resumeToken });
+      const r2 = await a2.registered;
+      assert.equal(r2.routePath, r.routePath);
+      // a fresh (non-resume) start from the same IP is refused…
+      const b = new TunnelClient(ab.base, tgt.port, { anonymous: true });
+      await assert.rejects(() => b.registered, /ANON_LIMIT_REACHED/);
+      // …and the refusal starts the cooldown: even after the session ends, no new starts
+      a2.close();
+      await sleep(300);
+      const c = new TunnelClient(ab.base, tgt.port, { anonymous: true });
+      await assert.rejects(() => c.registered, /ANON_LIMIT_REACHED/);
+      c.close();
+    } finally {
+      await tgt.close();
+      await ab.close();
+    }
   });
 });

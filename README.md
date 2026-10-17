@@ -54,7 +54,7 @@ Prefer no global install? `npm run cli -- http 3000 --anonymous` works too.
 npm run build           # compile TypeScript (strict)
 npm run typecheck       # tsc --noEmit
 npm run lint            # structural hygiene (no console.log, secrets, giant files)
-npm test                # full suite: unit + integration + e2e + security + CLI (45 tests)
+npm test                # full suite: unit + integration + e2e + security + CLI (50 tests)
 npm run smoke           # boots the real binary and checks public surfaces
 npm run test:unit       # fast subset
 npm run test:integration
@@ -82,4 +82,4 @@ npm run test:e2e
 
 ## License
 
-MIT (add a LICENSE file before publishing).
+MIT — see `LICENSE`.

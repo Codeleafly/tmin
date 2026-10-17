@@ -6,7 +6,7 @@ import { resolveAuth, requireAdmin } from "../auth/context";
 import { publicUser } from "../auth/users";
 import { audit } from "../auth/audit";
 import { allLive, liveById, unregisterLive, liveCount } from "../tunnels/registry";
-import { snapshotFor, readUsage } from "../usage";
+import { readUsage } from "../usage";
 
 function pageOf<T>(items: T[], query: URLSearchParams): { data: T[]; page: number; limit: number; total: number } {
   const page = Math.max(1, Number(query.get("page") || 1));
@@ -408,7 +408,5 @@ export async function handleAdmin(
     return true;
   }
 
-  void snapshotFor;
-  void readUsage;
   return false;
 }

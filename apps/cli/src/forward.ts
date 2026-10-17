@@ -146,7 +146,7 @@ export async function runHttpTunnel(cfg: CliConfig, opt: HttpOptions): Promise<n
               anonymous: frame.anonymous,
             };
             if (frame.anonymous && frame.resumeToken) {
-              c.anonResume = { [resumeKey]: frame.resumeToken };
+              c.anonResume = { ...c.anonResume, [resumeKey]: frame.resumeToken };
               void saveConfig(c).catch(() => undefined);
             }
             void addRuntime({
@@ -162,7 +162,7 @@ export async function runHttpTunnel(cfg: CliConfig, opt: HttpOptions): Promise<n
             });
             out(o.json, { event: "connected", ...registered, local: `${o.targetHost}:${o.port}` },
               `\n  ✓ Forwarding ${frame.publicUrl}  →  ${o.targetHost}:${o.port}` +
-                (frame.anonymous && frame.expiresAt ? `\n  ⏳ anonymous link expires in 30 min (${new Date(frame.expiresAt).toISOString()})` : `\n  ● permanent URL (slot ${o.slot})`) +
+                (frame.anonymous && frame.expiresAt ? `\n  ⏳ anonymous link expires in ${Math.max(1, Math.round((frame.expiresAt - Date.now()) / 60000))} min (${new Date(frame.expiresAt).toISOString()})` : `\n  ● permanent URL (slot ${o.slot})`) +
                 `\n  Press Ctrl+C to stop.\n`);
             if (frame.anonymous && frame.expiresAt) {
               countdown = setInterval(() => {
@@ -276,8 +276,6 @@ export async function runHttpTunnel(cfg: CliConfig, opt: HttpOptions): Promise<n
             break;
           }
         }
-
-        void localWs;
       });
 
       ws.on("close", () => {
@@ -393,7 +391,7 @@ export async function runHttpTunnel(cfg: CliConfig, opt: HttpOptions): Promise<n
 
 function friendly(code: string, msg: string): string {
   if (code === "TUNNEL_LIMIT_REACHED") return "Free accounts can run a maximum of 3 active tunnels. Stop one first.";
-  if (code === "ANON_EXPIRED") return "Anonymous session expired (30-minute limit).";
+  if (code === "ANON_EXPIRED") return "Anonymous session expired. Start a new tunnel or run `tmin login` for permanent URLs.";
   if (code === "TOKEN_REVOKED") return "Saved login is invalid. Run `tmin login` again.";
   if (code === "PROTOCOL_VERSION_MISMATCH") return "CLI/server protocol mismatch. Update tmin.";
   return msg;

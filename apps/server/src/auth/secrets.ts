@@ -18,10 +18,6 @@ export function newSessionToken(): { secret: string; hash: string } {
   return { secret, hash: sha256Hex(secret) };
 }
 
-export function signCookie(sid: string, secret: string): string {
-  return createHmac("sha256", secret).update(sid).digest("base64url");
-}
-
 export function anonPathToken(): string {
   // Lowercase hex only: paths are case-normalized by the router.
   return `a-${randomBytes(6).toString("hex")}`;

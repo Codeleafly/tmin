@@ -1,4 +1,4 @@
-import { isRecord, str, int, port } from "../../shared/src/index";
+import { isRecord, str, num, int, port } from "../../shared/src/index";
 import type { ClientFrame, ServerFrame } from "./messages";
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
@@ -40,7 +40,7 @@ export function validateClientFrame(f: unknown): string | null {
       if (f.target !== undefined && !str(f.target, 256)) return "register.target invalid";
       return null;
     case "heartbeat":
-      return typeof f.at === "number" ? null : "heartbeat.at invalid";
+      return num(f.at) ? null : "heartbeat.at invalid";
     case "response_head":
       if (!str(f.requestId, 64)) return "response_head.requestId invalid";
       if (!int(f.status, 100, 599)) return "response_head.status invalid";

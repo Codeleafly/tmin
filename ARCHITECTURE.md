@@ -5,7 +5,7 @@
 ```
 ┌─────────────┐   HTTPS    ┌───────────────────────── tmin server (one Node process) ─────────────────────────┐
 │   Browser   │──────────▶ │  Caddy/Ingress (TLS)  →  index.ts router                                      │
-│  or API     │            │     ├─ /api/v۱/*            REST API (auth, me, tokens, tunnels, routes, admin) │
+│  or API     │            │     ├─ /api/v1/*            REST API (auth, me, tokens, tunnels, routes, admin) │
 │   client    │            │     ├─ / /login /register /dashboard /admin /docs /openapi.json  (HTML/JSON)   │
 └─────────────┘            │     └─ /<username>[/2|/3]    public gateway → quota gate → live registry      │
                            │                                    │ (correlation-id multiplexing)          │

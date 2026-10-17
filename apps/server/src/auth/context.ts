@@ -15,7 +15,7 @@ export function sessionCookieName(): string {
   return SESSION_COOKIE;
 }
 
-export function buildSessionCookie(secret: string, sessionSecret: string, secure: boolean): string {
+export function buildSessionCookie(secret: string, secure: boolean): string {
   const parts = [
     `${SESSION_COOKIE}=${encodeURIComponent(secret)}`,
     "Path=/",
