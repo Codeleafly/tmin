@@ -42,20 +42,20 @@ Reports are plain `node --test` output; suites run from `dist/apps/server/test/*
 DATA_DIR=$(mktemp -d) SESSION_SECRET="$(openssl rand -hex 32)" \
   ADMIN_PASSWORD='Adminpass1!' PORT=8080 npm start &
 
-# terminal 2:
+# terminal 2 (after: npm install && npm i -g .):
 python3 -m http.server 3000 &
-node dist/apps/cli/src/index.js http 3000 --anonymous   # note the /a-… URL
-curl -i http://localhost:8080/a-…/                       # 200 from your python server
-node dist/apps/cli/src/index.js login                    # create account first via /register
-node dist/apps/cli/src/index.js http 3000                # → /<username>, permanent
-node dist/apps/cli/src/index.js doctor                   # ✓ dns/tls/health/auth
+tmin http 3000 --anonymous   # note the /a-… URL
+curl -i http://localhost:8080/a-…/   # 200 from your python server
+tmin login                   # create account first via /register
+tmin http 3000               # → /<username>, permanent
+tmin doctor                  # ✓ dns/tls/health/auth
 ```
 
 Quota check: set `FREE_DOWNLOAD_LIMIT_BYTES=100000`, download a >100 KB file twice; second request → `429 QUOTA_EXCEEDED_DOWNLOAD`; `tmin usage` shows the bytes.
 
 ## CI
 
-`.github/workflows/ci.yml`: install → build → typecheck → lint → test on Node 20. No services required (JSON store).
+`.github/workflows/ci.yml`: install → build → typecheck → lint → test → global CLI install (`npm i -g . && tmin version`) on Node 20. No services required (JSON store).
 
 ## Not covered here
 
