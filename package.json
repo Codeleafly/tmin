@@ -1,0 +1,50 @@
+{
+  "name": "tmin",
+  "version": "0.1.0",
+  "description": "tmin — self-hosted tunneling platform: CLI + server in one tiny package (runtime dep: ws)",
+  "type": "commonjs",
+  "bin": {
+    "tmin": "bin/tmin.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "scripts",
+    "deployment",
+    "README.md",
+    "LICENSE"
+  ],
+  "workspaces": [
+    "apps/server",
+    "apps/cli",
+    "packages/protocol",
+    "packages/shared"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "node scripts/lint.js",
+    "test": "node --test dist/apps/server/test/*.test.js",
+    "test:unit": "node --test dist/apps/server/test/unit.test.js dist/apps/server/test/openapi.test.js",
+    "test:integration": "node --test dist/apps/server/test/integration.test.js dist/apps/server/test/security.test.js",
+    "test:e2e": "node --test dist/apps/server/test/e2e.test.js",
+    "smoke": "node scripts/smoke.js",
+    "start": "node dist/apps/server/src/index.js",
+    "cli": "node dist/apps/cli/src/index.js",
+    "prepare": "node scripts/prepare.js",
+    "prepack": "node scripts/prepare.js",
+    "postinstall": "node scripts/termux-link.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/ws": "^8.5.12",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

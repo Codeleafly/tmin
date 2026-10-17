@@ -1,0 +1,31 @@
+# Caddy: automatic Let's Encrypt TLS + HTTP/WS reverse proxy to the tmin app.
+# Requires: PUBLIC_DOMAIN env (defaults to tunnel.example.com), A record pointing here.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# WebSocket upgrade (tunnel control plane + public WS bridging)
+	reverse_proxy tmin:8080 {
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# Upload limits at the edge (keep >= MAX_BODY_BYTES if you raise it)
+	request_body {
+		max_size 16MB
+	}
+
+	# Security headers for pages/docs served by the app
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 20MB
+			roll_keep 5
+		}
+	}
+}

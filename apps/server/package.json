@@ -1,0 +1,14 @@
+{
+  "name": "tmin-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "echo \"built from repo root: tsc -p tsconfig.json\"",
+    "start": "node ../../dist/apps/server/src/index.js",
+    "test": "node --test ../../dist/apps/server/test/"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

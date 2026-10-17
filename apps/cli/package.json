@@ -1,0 +1,13 @@
+{
+  "name": "tmin-cli",
+  "version": "0.1.0",
+  "description": "tmin CLI (workspace) — installed globally from the repo root via `npm i -g .`",
+  "type": "commonjs",
+  "scripts": {
+    "build": "echo \"built from repo root: tsc -p tsconfig.json\"",
+    "test": "echo \"cli: covered by server test suite (dist/apps/server/test/cli.test.js)\""
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

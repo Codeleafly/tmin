@@ -1,0 +1,10 @@
+{
+  "name": "@tmin/shared",
+  "version": "0.1.0",
+  "main": "../../dist/packages/shared/src/index.js",
+  "types": "../../dist/packages/shared/src/index.d.ts",
+  "scripts": {
+    "build": "echo \"built from repo root: tsc -p tsconfig.json\"",
+    "test": "echo \"@tmin/shared: no separate tests (covered by server)\""
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@tmin/protocol",
+  "version": "0.1.0",
+  "main": "../../dist/packages/protocol/src/index.js",
+  "types": "../../dist/packages/protocol/src/index.d.ts",
+  "scripts": {
+    "build": "echo \"built from repo root: tsc -p tsconfig.json\"",
+    "test": "echo \"@tmin/protocol: no separate tests (covered by server)\""
+  }
+}
