@@ -47,6 +47,7 @@ Prefer no global install? `npm run cli -- http 3000 --anonymous` works too.
 | Shared rules: usernames, route parsing, quota math, errors, config | `packages/shared` |
 | Docs site (served at `/docs`), OpenAPI at `/openapi.json` | built-in |
 | Caddy TLS reverse-proxy example | `deployment/` |
+| Replit import/run config (Run button + Publish) | `.replit`, `replit.nix` |
 
 ## Commands
 

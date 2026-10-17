@@ -22,6 +22,9 @@
 - Caddy TLS reverse-proxy example (`deployment/Caddyfile`); `.env.example` with every knob documented; CI workflow; smoke script.
 - 50 automated tests (unit, integration, e2e with real sockets, security, CLI subprocess, OpenAPI sync).
 
+### Replit deployment (unreleased)
+- Replit import config (`.replit`, `replit.nix`): importing the repo sets up the Run button (Node 20 module, install + build, server on port 8080 mapped to 80, `REPLIT_DEV_DOMAIN` wired into `PUBLIC_DOMAIN`/`PUBLIC_BASE_URL`) and the Publish command (`npm install && npm run build` / `npm start`). Provided as-is; not executed on Replit in the authoring environment.
+
 ### Fixes (unreleased)
 - Dashboard tunnel list and admin user list inline scripts had syntax errors (Stop/Suspend buttons and the whole page script never ran). Both are fixed and covered by a page-script parse test.
 - HTML pages are now served with `content-type: text/html`, `no-store` and a restrictive Content-Security-Policy via the shared `sendHtml` helper.

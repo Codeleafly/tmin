@@ -1,0 +1,28 @@
+modules = ["nodejs-20"]
+language = "javascript"
+onBoot = "npm install"
+build = "npm install && npm run build"
+
+[run]
+args = ["bash", "-c", """
+if [ -n "$REPLIT_DEV_DOMAIN" ]; then
+  export PUBLIC_DOMAIN="$REPLIT_DEV_DOMAIN"
+  export PUBLIC_BASE_URL="https://$REPLIT_DEV_DOMAIN"
+fi
+exec npm start
+"""]
+
+[run.env]
+PORT = "8080"
+DATA_DIR = "./data"
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix"]
+
+[deployment]
+build = "npm install && npm run build"
+run = "npm start"
+
+[[ports]]
+localPort = 8080
+externalPort = 80

@@ -73,7 +73,7 @@ behavior changes, tests added/extended for behavior changes (even if not asked).
   (sessions still expire correctly).
 - Password-reset email delivery is not integrated (dev mode returns the token).
 - Docker was intentionally removed; `deployment/Caddyfile` is a plain reverse-proxy example.
-- Caddyfile and GitHub CI are the only ops artifacts; CI is verified green on Node 20.
+- Caddyfile, Replit import config (`.replit`, `replit.nix`), and GitHub CI are the ops artifacts; CI is verified green on Node 20. Replit configs are provided as-is, not executed on Replit in the authoring environment.
 
 ## Orientation (read the listed doc before working in that area)
 
