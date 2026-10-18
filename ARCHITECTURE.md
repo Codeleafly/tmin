@@ -5,8 +5,11 @@
 ```
 ┌─────────────┐   HTTPS    ┌───────────────────────── tmin server (one Node process) ─────────────────────────┐
 │   Browser   │──────────▶ │  Caddy/Ingress (TLS)  →  index.ts router                                      │
-│  or API     │            │     ├─ /api/v1/*            REST API (auth, me, tokens, tunnels, routes, admin) │
-│   client    │            │     ├─ / /login /register /dashboard /admin /docs /openapi.json  (HTML/JSON)   │
+│  or API     │            │     ├─ /api/v1/*            REST API (auth, device flow, me, tokens, tunnels,   │
+│   client    │            │     │                                          routes, admin)                │
+│             │            │     ├─ / /login /register /dashboard /admin /device /docs  static `web/`    │
+│             │            │     │  /assets/*  (Tailwind CDN + plain JS, no build step)                    │
+│             │            │     ├─ /openapi.json                                                       │
 └─────────────┘            │     └─ /<username>[/2|/3]    public gateway → quota gate → live registry      │
                            │                                    │ (correlation-id multiplexing)          │
                            │  ws://.../tunnel  ◀── control plane┘                                        │
@@ -23,16 +26,22 @@
 ## Request flow (public HTTP)
 
 1. TLS terminates at Caddy; plain HTTP reaches the server.
-2. Router (`index.ts`) reserves system prefixes (`api/admin/dashboard/docs/login/...`) — they can never be tunnel paths.
+2. Router (`index.ts`) reserves system prefixes (`api/admin/dashboard/docs/device/login/register/...`) — they can never be tunnel paths.
 3. `gateway/router.ts` parses the path **segment-aware** (`packages/shared/src/routes.ts`): `/<username>[/slot][/rest?query]`. `"/myapp2"` is a different username than `"/myapp"`; `%2f` decoding is single-pass.
 4. Owner lookup: DB route row (`usernameLower + slot`) → owner account (status checked). Anonymous paths (`/a-…`) resolve against `anonSessions` with authoritative `expiresAt`.
 5. Quota gate (fail-closed): daily upload/download totals vs. limits (admins uncapped).
-6. Live registry (`tunnels/registry.ts`) returns the in-memory tunnel **only if a WS is connected**. No live tunnel ⇒ offline page (502) — never a different account's app.
+6. Live registry (`tunnels/registry.ts`) returns the in-memory tunnel **only if a WS is connected**. No live tunnel ⇒ offline page (502, served from `web/offline.html` via `serveOffline()`) — never a different account's app.
 7. Body read bounded → `dispatchToTunnel()` frames: `request_head` + `request_chunk*` (48 KB, base64). Per-tunnel concurrency cap (`MAX_CONCURRENT_PER_TUNNEL`, default 50) and request timeout apply.
 8. CLI reassembles, re-frames deterministically (`content-length` recomputed), calls local app, streams back `response_head/chunk*/end`.
 9. Server completes the public response, meters bytes, writes a request-log row (bounded).
 
 WebSocket: `/tunnel` = CLI control plane. Public WS upgrades on tunnel paths are bridged: token frames through the same tunnel socket (`request_head{wsUpgrade}` → `ws_opened/ws_frame*/ws_closed`), with frame-size cap, lifetime cap, early-frame buffering on the CLI side, and cancellation.
+
+## Web console (`web/`)
+
+Static pages under `web/` (Tailwind CDN + plain JS, no build step) are served by `apps/server/src/web/static.ts`: `/` → `index.html`, plus `/login`, `/register`, `/dashboard`, `/admin`, `/device`, `/docs` and `/assets/*` (CSS/JS, cached 300 s). The gateway's 502 offline page is `web/offline.html` (not a route; rendered per request with `serveOffline()`), falling back to a JSON `ROUTE_OFFLINE` error if `web/` is missing. `TMIN_WEB_DIR` overrides the location (default: the repo `web/` next to `dist/`). HTML is rendered with `{{baseUrl}}`, `{{anonTtlSeconds}}`, `{{anonTtlMinutes}}`, `{{version}}` placeholders (plus `{{routePath}}` for the offline page, HTML-escaped) and sent with `PAGE_CSP` (allows the Tailwind CDN; no inline event handlers). Pages are pure REST API clients — all authorization stays server-side, and no HTML is generated inside `apps/server`.
+
+Device login (`tmin login`): the CLI calls `/api/v1/auth/device/authorize` (receives `device_code` + a short user code) and prints the approval URL; the user signs in and approves at `/device`; the CLI polls `/api/v1/auth/device/token` every 5 s and receives a bearer token exactly once. Codes expire after 600 s and are stored hashed (`db.deviceAuths`).
 
 ## State ownership (single source of truth)
 
@@ -51,7 +60,7 @@ A DB tunnel row saying `connected` is never trusted — `status: "stale"` is dis
 
 ## Storage & migrations
 
-`db/store.ts`: schema v3, sequential migrations in `migrate()` (v1 normalize users, v2 per-user limits + token prefixes, v3 anon sessions + tunnel metadata). Writes are atomic (`tmp` + rename). Transactions serialize via an in-process promise chain (`store.tx`) — this is what makes concurrent slot allocation safe.
+`db/store.ts`: schema v4, sequential migrations in `migrate()` (v1 normalize users, v2 per-user limits + token prefixes, v3 anon sessions + tunnel metadata, v4 device-authorization codes). Writes are atomic (`tmp` + rename). Transactions serialize via an in-process promise chain (`store.tx`) — this is what makes concurrent slot allocation safe.
 
 **Restart behavior:** live sockets die; on boot, `recoverAfterRestart()` marks `connected` tunnel rows `closed` and stale anon sessions `expired`. Registered users simply reconnect (`tmin http …`) and re-assert the same route rows. Anonymous resume keys are process-local, so a resume after restart fails cleanly (`ANON_EXPIRED` path) while the session row remains correctly expired.
 

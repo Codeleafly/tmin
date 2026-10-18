@@ -13,7 +13,8 @@ Every line here should prevent a mistake an agent would otherwise make. Keep it 
 2. **Dependency budget: `ws` only.** Node builtins before any package. Install size is a
    product feature (currently ~3 MB); this project is built for metered/data-limited machines.
 3. **No giant files.** `scripts/lint.js` fails any source file > 700 lines, `console.log` in
-   `apps/server/src` (use `logger`), `eval`, or hardcoded secret literals.
+   `apps/server/src` (use `logger`), `eval`, hardcoded secret literals, or HTML documents in
+   `apps/server/src` (pages live in `web/`).
 4. **Route semantics are segment-aware** (`packages/shared/src/routes.ts`). `"/myapp2"` must
    never match `"/myapp"`. Usernames starting with `a-` are reserved (anonymous namespace).
 5. **Protocol frames are runtime-validated** even though both sides are TypeScript
@@ -31,7 +32,7 @@ npm install                # one dep + types
 npm run build              # tsc -p tsconfig.json → dist/   (tests run from dist/)
 npm run typecheck
 npm run lint               # structural rules above
-npm test                   # 50 tests: unit, integration, e2e (real sockets), security, CLI, openapi
+npm test                   # 69 tests: unit, integration, e2e (real sockets), security, CLI, device flow, openapi
 npm run test:e2e           # real WS tunnel + real HTTP target
 npm run smoke              # spawns the real binary, checks public surfaces
 npm i -g .                 # global `tmin` command (prepare: build-if-stale + Termux shim)
@@ -96,7 +97,15 @@ apps/server/src/gateway/router.ts public traffic: route → authz/quota → live
 apps/server/src/tunnels/          handler.ts (WS control plane), registry.ts (live reachability),
                                   routes.ts (transactional slot allocation)
 apps/server/src/db/store.ts       JSON store + migrations (SCHEMA_VERSION), store.tx serializes
-apps/cli/src/                     index.ts (commands), forward.ts (tunnel + reconnect)
+apps/cli/src/                     index.ts (commands), forward.ts (tunnel + reconnect),
+                                  login.ts (device flow / --token / --password)
 bin/tmin.js                       global CLI entry — `npm i -g .` from repo root
+web/                              static web console (Tailwind CDN + plain JS, no build step);
+                                  served by apps/server/src/web/static.ts (+ {{placeholders}})
+apps/server/src/api/device.ts     device login: authorize / token (poll) / verify (approve)
 scripts/                          lint.js, smoke.js, prepare.js, termux-link.js
 ```
+
+Web UI rules: pages live in `web/` only (never generate HTML inside `apps/server`), they are
+pure REST clients, all authorization stays server-side. `web/` must stay in `package.json`
+`files`. Device codes are hashed, single-use; never log user codes or device codes.

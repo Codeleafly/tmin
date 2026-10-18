@@ -43,6 +43,30 @@
 - Stale anonymous resume secrets are pruned instead of growing forever; resume-token map entries for other servers are no longer overwritten by the CLI.
 - CLI `--help --json` lists all commands; `tmin login` records the canonical username from the server; anonymous TTL messages no longer hardcode 30 minutes.
 
+### Web console + device-flow login (unreleased)
+- New static web console in `web/` (Tailwind CDN + plain JS, mobile-first, dark theme): landing
+  (`/`), login (`/login`), register (`/register`), dashboard (`/dashboard` — tunnels, usage,
+  API tokens with one-time secret dialog, sessions, password change), admin (`/admin` — users,
+  tunnels, anonymous sessions, quotas, audit log, maintenance), device approval (`/device`) and
+  docs (`/docs`). Served by the server; template placeholders inject the public base URL,
+  anonymous TTL and version. No build step; assets live in `web/assets/`.
+- CLI `tmin login` now defaults to an OAuth-style device flow: the CLI prints a short code
+  (`XXXX-XXXX`), you approve it in the browser at `/device`, and the CLI stores a revocable
+  token. `tmin login --token <secret>` uses an existing token (e.g. created in the dashboard);
+  `tmin login --password` keeps the previous interactive prompt. `--no-browser` prints the URL
+  without trying to open one.
+- New API endpoints: `POST /api/v1/auth/device/authorize`, `POST /api/v1/auth/device/token`
+  (poll; `AUTHORIZATION_PENDING`/`SLOW_DOWN`/`ACCESS_DENIED`/`DEVICE_CODE_EXPIRED`), and
+  `POST /api/v1/auth/device/verify` (`check|approve|deny`, session-authenticated). Codes expire
+  after 600s, are single-use, stored only as hashes, and mint exactly one bearer token; approvals
+  and denials are audited.
+- `device` and `register` are reserved system routes (no tunnel can shadow them).
+- The npm package now ships `web/`.
+- The gateway's "Route offline" 502 page is now `web/offline.html` (Tailwind-styled, mobile-responsive)
+  served through the static layer with the route path HTML-escaped. No HTML strings are generated
+  inside `apps/server` anymore; if `web/` is unavailable the route falls back to a JSON
+  `ROUTE_OFFLINE` error.
+
 ### Known at release
 - Single-server mode only; custom domains, per-route access policies, request inspector, email delivery, TCP tunnels: planned (see PLAN.md Milestone H).
 - Deployment examples (Caddy config, CI) are provided as-is; the Caddyfile was not executed in the authoring environment.

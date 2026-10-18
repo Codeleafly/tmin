@@ -6,9 +6,12 @@ One runtime dependency: [`ws`](https://www.npmjs.com/package/ws). The whole inst
 
 ## Quick start
 
-**1. Install the CLI** (from the repo root — builds automatically, no sudo needed with a user-level npm prefix):
+**1. Clone and install the CLI** (Node.js ≥ 20; installs from this repo — the `tmin`
+package on the npm registry is an unrelated project):
 
 ```bash
+git clone https://github.com/Codeleafly/tmin.git
+cd tmin
 npm install
 npm i -g .        # installs the global `tmin` command
 tmin version
@@ -18,8 +21,14 @@ tmin version
 
 ```bash
 SESSION_SECRET=$(openssl rand -hex 32) ADMIN_PASSWORD='change-me-1!' npm start
-# → http://localhost:8080  (landing, docs, dashboard, admin)
+# → http://localhost:8080
 ```
+
+Open the web console in a browser: `/register` to create an account, `/login` to sign in,
+`/dashboard` for tunnels/usage/API tokens, `/admin` for the admin panel (sign in as the
+`ADMIN_USERNAME` — default `admin` — with the `ADMIN_PASSWORD` from the server env), and
+`/docs` for the reference. The admin account is created once at first start; restarts never
+overwrite its password.
 
 **3. Expose something:**
 
@@ -28,10 +37,14 @@ SESSION_SECRET=$(openssl rand -hex 32) ADMIN_PASSWORD='change-me-1!' npm start
 tmin http 3000 --anonymous
 
 # permanent URL
-tmin login                 # stores a revocable token (0600)
+tmin login                 # approve a code in the browser (OAuth-style device flow)
 tmin http 3000             # → https://<server>/<username>
 tmin http 8080 --slot 2    # → /<username>/2
 ```
+
+`tmin login` stores a revocable token (0600). Prefer no browser? `tmin login --token <secret>`
+with a token created under Dashboard → API tokens, or `tmin login --password` for a direct
+username/password prompt.
 
 Prefer no global install? `npm run cli -- http 3000 --anonymous` works too.
 
@@ -41,11 +54,12 @@ Prefer no global install? `npm run cli -- http 3000 --anonymous` works too.
 
 | Piece | Where |
 |---|---|
-| Public gateway + REST API + WS control plane + dashboards | `apps/server` |
+| Public gateway + REST API + WS control plane | `apps/server` |
 | CLI (`tmin`) | `apps/cli` |
 | Versioned protocol (typed frames + runtime validation) | `packages/protocol` |
 | Shared rules: usernames, route parsing, quota math, errors, config | `packages/shared` |
-| Docs site (served at `/docs`), OpenAPI at `/openapi.json` | built-in |
+| Web console: static pages (Tailwind CDN + JS), served at `/`, `/login`, `/register`, `/dashboard`, `/admin`, `/device`, `/docs` | `web/` |
+| OpenAPI at `/openapi.json` | built-in |
 | Caddy TLS reverse-proxy example | `deployment/` |
 | Replit import/run config (Run button + Publish) | `.replit`, `replit.nix` |
 
@@ -54,8 +68,8 @@ Prefer no global install? `npm run cli -- http 3000 --anonymous` works too.
 ```bash
 npm run build           # compile TypeScript (strict)
 npm run typecheck       # tsc --noEmit
-npm run lint            # structural hygiene (no console.log, secrets, giant files)
-npm test                # full suite: unit + integration + e2e + security + CLI (50 tests)
+npm run lint            # structural hygiene (no console.log, secrets, giant files, HTML in server src)
+npm test                # full suite: unit + integration + e2e + security + CLI + device flow (69 tests)
 npm run smoke           # boots the real binary and checks public surfaces
 npm run test:unit       # fast subset
 npm run test:integration
@@ -70,6 +84,8 @@ npm run test:e2e
 - Upload/download quotas (default 1 GB/day each, `FREE_*_LIMIT_BYTES`) are metered and persisted; exhausted quotas stop traffic with explicit errors.
 - Admin is bootstrapped from env **once** — restarts never overwrite the password.
 - API tokens are stored **hashed** (SHA-256), shown once, revocable instantly.
+- Device-login codes (`tmin login`) expire after **10 minutes**, are single-use, are stored
+  hashed, and only mint a token after the signed-in user approves them at `/device`.
 
 ## Docs
 

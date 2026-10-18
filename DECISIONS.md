@@ -7,7 +7,7 @@
 
 ## ADR-2: Durable JSON store with sequential migrations instead of Postgres
 **Context:** Single-server mode is the stated goal; Postgres would add infra weight with no benefit at this stage.
-**Decision:** One JSON document (`DATA_DIR/tmin.json`), atomic writes (`tmp`+rename), in-process serialized transactions, `SCHEMA_VERSION=3` with forward migrations.
+**Decision:** One JSON document (`DATA_DIR/tmin.json`), atomic writes (`tmp`+rename), in-process serialized transactions, `SCHEMA_VERSION=4` with forward migrations.
 **Consequences:** All invariants (unique username, slot allocation) enforced in the same process with `store.tx` — race-free for a single instance. Documented limitation: no multi-instance; Postgres path is a planned milestone (schema sketch in PLAN.md).
 
 ## ADR-3: scrypt instead of Argon2id
@@ -34,10 +34,10 @@
 **Decision:** `requestId` correlation; bodies stream in 48 KB base64 chunks; per-tunnel in-flight cap; 30 s default timeout; cancellation frames. No unbounded queues — public WS frames buffer at most 256 frames / 1 MiB while the local socket connects.
 **Consequences:** Deterministic memory bounds; base64 costs ~33% overhead on the wire (acceptable for tunnels over TLS; documented).
 
-## ADR-8: Server-rendered dashboards instead of Next.js
+## ADR-8: Static `web/` pages (Tailwind CDN) instead of Next.js
 **Context:** Brief suggests Next.js; constraint says light and no frameworks.
-**Decision:** HTML/CSS/vanilla-JS pages served by the server (`web/pages.ts`, `web/docs.ts`), calling the documented REST API.
-**Consequences:** No build step, no node_modules growth; UI is real (backed by tested APIs) and works without JS for docs/landing. Trade-off: less component tooling — acceptable for this scope.
+**Decision:** Plain HTML/CSS/vanilla-JS pages live in `web/` (no build step) and are served by `apps/server/src/web/static.ts` (`/`, `/login`, `/register`, `/dashboard`, `/admin`, `/device`, `/docs`, `/assets/*`). Styling uses the Tailwind CDN, allowed by a dedicated `PAGE_CSP`; pages are pure clients of the documented REST API. Server-side template placeholders inject base URL / anon TTL / version.
+**Consequences:** No build step, no node_modules growth, and the UI ships in the npm package (`files: ["web"]`). Trade-off: pages need network access to the Tailwind CDN (acceptable; no JS framework). All authorization stays server-side; the UI can never weaken a server check.
 
 ## ADR-9: Admin bootstrap semantics
 **Decision:** `ADMIN_USERNAME/PASSWORD/EMAIL` creates the admin **only when no admin exists**. Restarts never touch the password. Rotation = admin reset via `/api/v1/admin/users/:id/reset-password` (or, for lockout, edit the user record offline while server is stopped — documented procedure).
@@ -46,3 +46,8 @@
 ## ADR-10: Port 0 + module-cache isolation for tests
 **Decision:** Tests boot the real server (`start()`) on an ephemeral port with a temp `DATA_DIR` and cleared module cache, so every suite gets fresh in-memory registries and hot counters while exercising production code paths.
 **Consequences:** Suites can run in parallel files safely; CLI tests spawn the real CLI binary against the real server (no mocks).
+
+## ADR-11: Device-flow CLI login (OAuth-style) as the default
+**Context:** Typing a password into the CLI is the worst option (shoulder-surfing, shells logging, no revocation story); pasting a token is fine but requires finding the dashboard first.
+**Decision:** `tmin login` defaults to a device flow: `POST /api/v1/auth/device/authorize` → short user code (dashless at rest, one-time binding) → the user approves at `/device` in a signed-in browser → the CLI polls `/api/v1/auth/device/token` every 5 s and stores a normal revocable API token (0600). `--token` and `--password` remain for scripted/offline cases.
+**Consequences:** The CLI never handles the password; every device login ends in the same audited, revocable token object; codes are hashed, single-use, 600 s TTL (`db.deviceAuths`, sweeper-pruned). Trade-off: needs a browser on any device (not the same machine) plus outbound poll — acceptable and standard.

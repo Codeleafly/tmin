@@ -29,6 +29,12 @@
 - Quotas: upload=request bytes to local, download=response bytes to visitor; dashboard/API show the same convention; exhausted ⇒ 429 `QUOTA_EXCEEDED_*`; persisted (integration).
 - Cookies: HttpOnly, SameSite=Lax, Secure when base URL is https, 7-day expiry, per-session revoke.
 - Tokens: `tmin_…` random 160-bit, hashed, optional expiry, last-used stamp, revoke test in security suite.
+- Device login (`tmin login`): user code from a 29-symbol alphabet (no `0/O/1/I/L/U`), dashless
+  at rest, device code random 256-bit stored only as a SHA-256 hash; 600 s TTL; poll interval
+  enforced (`SLOW_DOWN`); single-use (one token per approved code); approve/deny requires a
+  signed-in session and is audited; unknown/expired codes fail closed (`device.test.ts`).
+- Web console pages are static clients of the REST API: the CSP allows the Tailwind CDN and
+  assets only (`PAGE_CSP`), and no authorization decision is made client-side.
 - Admin: env-bootstrap once; no public admin registration; suspend kills live tunnels and blocks login/public routes (security suite); rename guarded (no live tunnels); audit rows for actions.
 - Protocol: JSON frames validated; chunk size caps; heartbeat timeouts close stale sockets; malformed hello/reply frames rejected (`oversized … malformed WS frames` test).
 - Maintenance mode: public gateway fails closed (503) while `/health` stays up.

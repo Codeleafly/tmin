@@ -9,7 +9,7 @@ Legend: [x] done & verified · [~] partial · [ ] planned
 - [x] Monorepo (npm workspaces: apps/server, apps/cli, packages/protocol, packages/shared)
 - [x] Strict TS, single build to `dist/` (no per-package builds)
 - [x] Env-validated config (`packages/shared/src/config.ts`), fail-fast in production
-- [x] Durable store + versioned migrations (`SCHEMA_VERSION = 3`)
+- [x] Durable store + versioned migrations (`SCHEMA_VERSION = 4`)
 - [x] Structured logger, typed error codes, lint script, docs skeleton
 - Exit: `npm run build && npm test` green.
 
@@ -18,6 +18,8 @@ Legend: [x] done & verified · [~] partial · [ ] planned
 - [x] HttpOnly cookie sessions (7d), revocation, session listing
 - [x] API tokens: hashed at rest, one-time secret display, expiry, last-used, revoke
 - [x] Password change (revokes other sessions), reset flow (single-use, 1h; dev returns token)
+- [x] Device-flow login for the CLI (`tmin login`: browser approval at `/device`; codes hashed,
+      single-use, 600 s TTL, poll interval enforced) + `--token` / `--password` alternatives
 - [x] Admin bootstrap from env — first start only, never overwritten on restart
 - [x] Audit log with actor/target/result; auth rate limiting; generic login errors
 - Exit: ownership & permissions enforced by the backend (integration + security tests).
@@ -51,9 +53,10 @@ Legend: [x] done & verified · [~] partial · [ ] planned
 ## Milestone F — Public interfaces ✅
 - [x] REST API v1 under `/api/v1` (auth, me, tokens, tunnels, routes, sessions, admin)
 - [x] OpenAPI 3.0 generated from `ROUTE_TABLE`; served at `/openapi.json`; sync test
-- [x] Landing, login, register, **dashboard** (overview/tunnels/usage/routes/tokens/sessions/security)
+- [x] Static web console in `web/` (Tailwind CDN + plain JS, no build step, mobile-first):
+      landing, login, register, **dashboard** (overview/tunnels/usage/routes/tokens/sessions/security)
 - [x] **Admin panel** (`/admin`): users, status, quotas, tunnels, anon sessions, audit, maintenance, health
-- [x] Interactive docs site (`/docs`) covering every documented requirement topic
+- [x] Device approval page (`/device`) + interactive docs site (`/docs`) covering every documented topic
 - Exit: full product usable without touching DB rows (verified via API/UI code paths + smoke).
 
 ## Milestone G — Hardening & operations ✅ (single-server scope)
@@ -76,8 +79,8 @@ Legend: [x] done & verified · [~] partial · [ ] planned
 
 ## Current status
 
-All automated suites green: **50 tests / 20 suites**, `lint OK`, `smoke ALL CHECKS PASSED`.
-Unverified in this environment: real Let's Encrypt issuance, multi-instance mode (not implemented), Playwright browser tests (not present — dashboards are server-rendered and exercised via API tests + smoke).
+All automated suites green: **69 tests / 22 suites**, `lint OK`, `smoke ALL CHECKS PASSED`.
+Unverified in this environment: real Let's Encrypt issuance, multi-instance mode (not implemented), Playwright browser tests (not present — the `web/` console is static REST clients, exercised via API tests, static-analysis checks and smoke).
 
 ## Next priorities (ordered)
 
