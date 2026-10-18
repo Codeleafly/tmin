@@ -11,7 +11,7 @@ export const RESERVED_NAMES = new Set([
   "www", "mail", "root", "support", "status", "help", "about",
   "settings", "config", "auth", "register", "signup", "signin",
   "websocket", "ws", "public", "private", "null", "undefined",
-  "anonymous", "anon", "share", "s", "t", "u", "go", "r",
+  "anonymous", "anon", "share", "s", "t", "u", "go", "r", "device",
 ]);
 
 export function normalizeUsername(input: string): string {

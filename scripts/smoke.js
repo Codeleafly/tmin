@@ -86,8 +86,22 @@ async function main() {
 
     const landing = await get("/");
     check("landing page served", landing.status === 200 && landing.body.includes("tmin"));
+    const loginPage = await get("/login");
+    check("login page served", loginPage.status === 200 && loginPage.body.includes("ADMIN_PASSWORD"));
+    const register = await get("/register");
+    check("register page served", register.status === 200 && register.body.includes("Create"));
+    const dashboard = await get("/dashboard");
+    check("dashboard page served", dashboard.status === 200 && dashboard.body.includes("API tokens"));
+    const adminPage = await get("/admin");
+    check("admin page served", adminPage.status === 200 && adminPage.body.includes("Administration"));
+    const device = await get("/device");
+    check("device authorization page served", device.status === 200 && device.body.includes("Authorize"));
+    const assetJs = await get("/assets/app.js");
+    check("static JS asset served", assetJs.status === 200 && assetJs.body.includes("Tm"));
+    const assetCss = await get("/assets/app.css");
+    check("static CSS asset served", assetCss.status === 200 && assetCss.body.includes(".card"));
     const docs = await get("/docs");
-    check("docs site served", docs.status === 200 && docs.body.includes("Quick start") || docs.body.includes("Getting started"));
+    check("docs site served", docs.status === 200 && docs.body.includes("Getting started"));
     const openapi = await get("/openapi.json");
     check("openapi.json served", openapi.status === 200 && openapi.body.includes("openapi"));
     const notFound = await get("/nope-route");
@@ -102,6 +116,8 @@ async function main() {
     check("wrong password rejected", badLogin.status === 401);
     const admin = await post("/api/v1/auth/login", { login: "admin", password: "Smokepass1!" });
     check("admin bootstrap works", admin.status === 200);
+    const deviceAuth = await post("/api/v1/auth/device/authorize", { clientName: "smoke" });
+    check("device flow authorize works", deviceAuth.status === 201 && deviceAuth.body.includes("user_code"), `got ${deviceAuth.status}`);
   } finally {
     server.kill("SIGTERM");
     await new Promise((r) => server.on("exit", r));

@@ -5,6 +5,7 @@ import WebSocket from "ws";
 import { parsePublicPath, newRequestId, type AppConfig } from "../../../../packages/shared/src/index";
 import type { Store } from "../db/store";
 import { sendError, clientIp } from "../http";
+import { serveOffline } from "../web/static";
 import { liveByRoute, type LiveTunnel } from "../tunnels/registry";
 import { dispatchToTunnel } from "../tunnels/handler";
 import { snapshotFor, quotaBlockReason, addUsage } from "../usage";
@@ -14,6 +15,7 @@ import { newId } from "../../../../packages/shared/src/index";
 export const SYSTEM_PREFIXES = new Set([
   "api", "admin", "dashboard", "docs", "login", "logout", "assets",
   "health", "ready", "metrics", "tunnel", "tunnels", "favicon",
+  "register", "device",
 ]);
 
 const HOP_BY_HOP = new Set([
@@ -56,10 +58,6 @@ interface Admission {
 }
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
-
-function offlinePage(routePath: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Route offline</title><style>body{font-family:system-ui,sans-serif;max-width:560px;margin:8vh auto;padding:0 20px;color:#1a1a1a}code{background:#f1f1f1;padding:2px 6px;border-radius:4px}</style></head><body><h1>Route offline</h1><p><code>${routePath}</code> has no live tunnel connected.</p><p>Ask the owner to run <code>tmin</code> again, or check the dashboard for connection history.</p></body></html>`;
-}
 
 export async function handlePublicRequest(req: IncomingMessage, res: ServerResponse, deps: GatewayDeps): Promise<void> {
   const { store, cfg } = deps;
@@ -106,8 +104,7 @@ export async function handlePublicRequest(req: IncomingMessage, res: ServerRespo
       return;
     }
     if (!found.tunnel) {
-      res.writeHead(502, { "content-type": "text/html; charset=utf-8", "x-request-id": requestId });
-      res.end(offlinePage(`/${parsed.username}`));
+      serveOffline(res, cfg, `/${parsed.username}`, requestId);
       logReq(store, requestId, method, pathname, 502, Date.now() - started, 0, 0, "none", "anon");
       return;
     }
@@ -130,8 +127,7 @@ export async function handlePublicRequest(req: IncomingMessage, res: ServerRespo
     const routePath = parsed.slot === 1 ? `/${parsed.username}` : `/${parsed.username}/${parsed.slot}`;
     const tunnel = liveByRoute(routePath) ?? undefined;
     if (!tunnel) {
-      res.writeHead(502, { "content-type": "text/html; charset=utf-8", "x-request-id": requestId });
-      res.end(offlinePage(routePath));
+      serveOffline(res, cfg, routePath, requestId);
       logReq(store, requestId, method, pathname, 502, Date.now() - started, 0, 0, "none", route.id);
       return;
     }
@@ -221,8 +217,7 @@ export async function handlePublicRequest(req: IncomingMessage, res: ServerRespo
     else if (code === "RATE_LIMITED") sendError(res, "RATE_LIMITED", "Tunnel is busy. Retry shortly.", undefined, requestId);
     else if (code === "PAYLOAD_TOO_LARGE") sendError(res, "PAYLOAD_TOO_LARGE", "Body too large.", undefined, requestId);
     else {
-      res.writeHead(502, { "content-type": "text/html; charset=utf-8", "x-request-id": requestId });
-      res.end(offlinePage(adm.routePath));
+      serveOffline(res, cfg, adm.routePath, requestId);
     }
     logReq(store, requestId, method, pathname, code === "GATEWAY_TIMEOUT" ? 504 : 502, Date.now() - started, body.length, 0, adm.tunnel.id, adm.routeId);
   }

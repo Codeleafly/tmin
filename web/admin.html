@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin · tmin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2334d399'/%3E%3Cpath d='M9 12h14M16 12v9' stroke='%23022c22' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { brand: { 300: "#6ee7b7", 400: "#34d399", 500: "#10b981", 600: "#059669" } },
+  fontFamily: { mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"] },
+} } };
+</script>
+<link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/app.js" defer></script>
+<script src="/assets/admin.js" defer></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-200 antialiased">
+
+<div class="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+  <div class="absolute -top-40 left-1/4 h-80 w-[40rem] rounded-full bg-violet-500/8 blur-3xl"></div>
+</div>
+
+<header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+  <nav class="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <a href="/" class="flex items-center gap-2.5 font-semibold text-white">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-cyan-400 text-slate-950">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 8h14M12 8v11"/></svg>
+      </span>
+      <span class="text-lg tracking-tight">tmin</span>
+    </a>
+    <div class="hidden items-center gap-6 text-sm text-slate-300 md:flex">
+      <a href="/dashboard" class="hover:text-white">Dashboard</a>
+      <a href="/admin" class="font-medium text-white">Admin</a>
+      <a href="/docs" class="hover:text-white">Docs</a>
+      <a href="/openapi.json" class="hover:text-white">API</a>
+    </div>
+    <div class="hidden items-center gap-3 md:flex">
+      <span id="navUser" class="text-sm text-slate-400"></span>
+      <button id="logoutBtn" class="btn-ghost btn-sm">Log out</button>
+    </div>
+    <button id="navBtn" class="rounded-lg border border-white/15 p-2 text-slate-300 md:hidden" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </nav>
+  <div id="navMenu" class="hidden border-t border-white/10 px-4 py-4 md:hidden">
+    <div class="flex flex-col gap-1 text-sm">
+      <a href="/dashboard" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">Dashboard</a>
+      <a href="/admin" class="rounded-lg px-3 py-2.5 text-white">Admin</a>
+      <a href="/docs" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">Docs</a>
+      <a href="/openapi.json" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">OpenAPI</a>
+      <button id="logoutBtnMobile" class="mt-1 rounded-lg px-3 py-2.5 text-left text-rose-300 hover:bg-white/5">Log out</button>
+    </div>
+  </div>
+</header>
+
+<main class="relative mx-auto max-w-6xl px-4 py-8">
+
+  <!-- Access denied screen -->
+  <div id="denied" class="hidden">
+    <div class="card mx-auto max-w-lg p-8 text-center">
+      <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-300">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+      </div>
+      <h1 class="text-xl font-bold text-white">Administrator access required</h1>
+      <p id="deniedMsg" class="mt-2 text-sm text-slate-400">Log in with an admin account to manage this server.</p>
+      <div class="mt-6 flex justify-center gap-3">
+        <a href="/login?next=%2Fadmin" class="btn-primary">Log in as admin</a>
+        <a href="/dashboard" class="btn-ghost">Go to dashboard</a>
+      </div>
+      <div class="mt-6 rounded-xl border border-white/10 bg-slate-950/60 p-4 text-left text-xs leading-relaxed text-slate-500">
+        <b class="text-slate-400">First time here?</b> The admin account is created from the server environment on first boot:
+        set <span class="code">ADMIN_USERNAME</span> and <span class="code">ADMIN_PASSWORD</span> (and optionally
+        <span class="code">ADMIN_EMAIL</span>) before starting the server, then log in at <span class="code">/login</span>.
+        Restarts never overwrite the existing admin password. See <a href="/docs#admin" class="text-brand-300 hover:text-brand-400">docs → Administration</a>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div id="panel" class="hidden">
+    <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div>
+        <h1 class="text-2xl font-bold text-white">Administration</h1>
+        <p class="mt-1 text-sm text-slate-400">Users, tunnels, quotas, maintenance and the audit trail.</p>
+      </div>
+      <div id="maintenanceBox" class="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5">
+        <span class="text-sm text-slate-400">Maintenance mode</span>
+        <span id="maintState" class="badge muted">off</span>
+        <button id="maintToggle" class="btn-ghost btn-sm">Toggle</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div id="kpis" class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4"></div>
+
+    <!-- Users -->
+    <section class="mt-8">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold text-white">Users</h2>
+        <form id="userSearchForm" class="flex gap-2">
+          <input id="userSearch" class="field !w-56" placeholder="Search username or email…">
+          <button class="btn-ghost btn-sm">Search</button>
+        </form>
+      </div>
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto"><table class="tbl"><thead><tr>
+          <th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Limits</th><th>Created</th><th class="text-right">Actions</th>
+        </tr></thead><tbody id="userRows"><tr><td colspan="7" class="text-center text-slate-500">Loading…</td></tr></tbody></table></div>
+        <div class="flex items-center justify-between border-t border-white/10 px-4 py-2.5 text-xs text-slate-500">
+          <span id="userPageInfo"></span>
+          <div class="flex gap-2">
+            <button id="userPrev" class="btn-ghost btn-sm">Prev</button>
+            <button id="userNext" class="btn-ghost btn-sm">Next</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live tunnels -->
+    <section class="mt-8">
+      <h2 class="mb-3 text-lg font-semibold text-white">Live tunnels</h2>
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto"><table class="tbl"><thead><tr>
+          <th>Route</th><th>Owner</th><th>Slot</th><th>Uptime</th><th>Traffic</th><th class="text-right">Actions</th>
+        </tr></thead><tbody id="tunnelRows"><tr><td colspan="6" class="text-center text-slate-500">Loading…</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- Anonymous sessions -->
+    <section class="mt-8">
+      <h2 class="mb-3 text-lg font-semibold text-white">Anonymous sessions</h2>
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto"><table class="tbl"><thead><tr>
+          <th>Path</th><th>Status</th><th>Time left</th><th>Live</th><th>Created</th>
+        </tr></thead><tbody id="anonRows"><tr><td colspan="5" class="text-center text-slate-500">Loading…</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- Quotas -->
+    <section class="mt-8">
+      <h2 class="mb-3 text-lg font-semibold text-white">Global quota policy</h2>
+      <div class="card p-5">
+        <p class="text-xs text-slate-500">Runtime overrides only — not persisted (documented limitation; edit <span class="code">.env</span> to make permanent).</p>
+        <form id="quotaForm" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div><label class="label" for="qTunnels">Max tunnels</label><input id="qTunnels" type="number" min="1" max="10" class="field"></div>
+          <div><label class="label" for="qUp">Upload bytes/day</label><input id="qUp" type="number" min="0" class="field"></div>
+          <div><label class="label" for="qDown">Download bytes/day</label><input id="qDown" type="number" min="0" class="field"></div>
+          <div><label class="label" for="qTtl">Anon TTL (sec)</label><input id="qTtl" type="number" min="60" max="7200" class="field"></div>
+          <div><label class="label" for="qWarn">Warn at (%)</label><input id="qWarn" type="number" min="1" max="99" class="field"></div>
+          <div class="sm:col-span-2 lg:col-span-5"><button class="btn-primary" type="submit">Save quotas</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Audit -->
+    <section class="mt-8">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold text-white">Audit log</h2>
+        <form id="auditSearchForm" class="flex gap-2">
+          <input id="auditSearch" class="field !w-56" placeholder="Search action, actor…">
+          <button class="btn-ghost btn-sm">Search</button>
+        </form>
+      </div>
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto"><table class="tbl"><thead><tr>
+          <th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th>
+        </tr></thead><tbody id="auditRows"><tr><td colspan="5" class="text-center text-slate-500">Loading…</td></tr></tbody></table></div>
+        <div class="flex items-center justify-between border-t border-white/10 px-4 py-2.5 text-xs text-slate-500">
+          <span id="auditPageInfo"></span>
+          <div class="flex gap-2">
+            <button id="auditPrev" class="btn-ghost btn-sm">Prev</button>
+            <button id="auditNext" class="btn-ghost btn-sm">Next</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="h-16"></div>
+</main>
+</body>
+</html>

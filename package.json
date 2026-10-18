@@ -9,6 +9,7 @@
   "files": [
     "bin",
     "dist",
+    "web",
     "scripts",
     "deployment",
     "README.md",

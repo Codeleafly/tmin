@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en" class="scroll-pt-24">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs · tmin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2334d399'/%3E%3Cpath d='M9 12h14M16 12v9' stroke='%23022c22' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { brand: { 300: "#6ee7b7", 400: "#34d399", 500: "#10b981", 600: "#059669" } },
+  fontFamily: { mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"] },
+} } };
+</script>
+<link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/app.js" defer></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-300 antialiased">
+
+<header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+  <nav class="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <a href="/" class="flex items-center gap-2.5 font-semibold text-white">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-cyan-400 text-slate-950">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 8h14M12 8v11"/></svg>
+      </span>
+      <span class="text-lg tracking-tight">tmin</span>
+      <span class="ml-1 rounded-full border border-white/15 px-2 py-0.5 text-[11px] font-normal text-slate-400">docs</span>
+    </a>
+    <div class="hidden items-center gap-6 text-sm md:flex">
+      <a href="/dashboard" class="hover:text-white">Dashboard</a>
+      <a href="/admin" class="hover:text-white">Admin</a>
+      <a href="/openapi.json" class="hover:text-white">OpenAPI</a>
+      <a href="/login" class="hover:text-white">Log in</a>
+    </div>
+    <button id="navBtn" class="rounded-lg border border-white/15 p-2 text-slate-300 md:hidden" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </nav>
+  <div id="navMenu" class="hidden border-t border-white/10 px-4 py-4 md:hidden">
+    <div class="flex flex-col gap-1 text-sm">
+      <a href="/dashboard" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">Dashboard</a>
+      <a href="/admin" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">Admin</a>
+      <a href="/openapi.json" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">OpenAPI</a>
+      <a href="/login" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">Log in</a>
+    </div>
+  </div>
+</header>
+
+<div class="mx-auto grid max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[230px_1fr]">
+  <aside class="hidden lg:block">
+    <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto pr-2 text-sm">
+      <div class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Contents</div>
+      <nav class="flex flex-col gap-0.5">
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#start">Getting started</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#arch">Architecture</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#install">Installation</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#cli">CLI installation</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#accounts">Accounts</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#device">CLI login (device flow)</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#tokens">API tokens</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#anon">Anonymous tunnels</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#named">Named URLs</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#slots">Tunnels &amp; slots</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#forwarding">Forwarding</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#auth">Authentication</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#api">REST API</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#quotas">Quotas</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#access">Access protection</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#domains">Custom domains</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#env">Environment</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#deploy">Deployment</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#tls">TLS and DNS</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#admin">Administration</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#ui">Web dashboard</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#security">Security</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#trouble">Troubleshooting</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#monitor">Monitoring</a>
+        <a class="rounded-md px-2.5 py-1.5 text-slate-400 hover:bg-white/5 hover:text-white" href="#faq">FAQ</a>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="min-w-0">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-white">Documentation</h1>
+      <p class="mt-2 text-sm text-slate-400">tmin v{{version}} · self-hosted tunneling — server + CLI in one small package.</p>
+    </div>
+
+    <section id="start" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Getting started</h2>
+      <p class="mt-2 text-sm leading-relaxed">Run your own server (see <a href="#deploy" class="text-brand-300 hover:text-brand-400">deployment</a>), then:</p>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] leading-relaxed text-slate-300">tmin config set server https://tunnel.example.com
+tmin http 3000 --anonymous   <span class="text-slate-500"># instant short-lived link (default {{anonTtlMinutes}} min)</span>
+tmin login                   <span class="text-slate-500"># browser device flow — approve with a code</span>
+tmin http 3000               <span class="text-slate-500"># permanent {{baseUrl}}/&lt;you&gt;</span></pre>
+    </section>
+
+    <section id="arch" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Architecture</h2>
+      <p class="mt-2 text-sm leading-relaxed">One Node process serves the REST API, the WebSocket control plane (<span class="code">/tunnel</span>), the public gateway and the web UI. The CLI dials <b class="text-slate-200">out</b>; public traffic rides that socket — the server never dials into your network. Live reachability lives in memory; route <b class="text-slate-200">ownership</b> lives in the JSON store (migrated, atomically written).</p>
+    </section>
+
+    <section id="install" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Installation</h2>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">git clone &lt;repo&gt; &amp;&amp; cd tmin
+npm install            <span class="text-slate-500"># only dependency: ws</span>
+npm run build &amp;&amp; npm start</pre>
+      <p class="mt-3 text-sm">Requires Node 20+. No database server needed for single-server mode.</p>
+    </section>
+
+    <section id="cli" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">CLI installation</h2>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">npm install
+npm i -g .
+tmin --help
+
+<span class="text-slate-500"># no global install? run from the repo:</span>
+npm run cli -- --help</pre>
+    </section>
+
+    <section id="accounts" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Registration and login</h2>
+      <p class="mt-2 text-sm leading-relaxed">Register on the web UI at <a href="/register" class="text-brand-300 hover:text-brand-400">/register</a> or via <span class="code">POST /api/v1/auth/register</span>. Usernames are lowercase-unique, 3–32 chars, <span class="code">a-z 0-9 - _</span>, with system names reserved (<span class="code">api admin dashboard docs login …</span>). Browser login sets an HttpOnly <span class="code">tmin_sid</span> cookie; the CLI uses revocable bearer tokens.</p>
+    </section>
+
+    <section id="device" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">CLI login — OAuth-style device flow</h2>
+      <p class="mt-2 text-sm leading-relaxed"><span class="code">tmin login</span> uses a device-authorization flow (RFC 8628-style):</p>
+      <ol class="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
+        <li>The CLI requests a device code and prints a short <b class="text-slate-200">user code</b> plus the URL <a href="/device" class="text-brand-300 hover:text-brand-400">/device</a>.</li>
+        <li>You open the URL in any browser (phone or computer) and enter the code — log in first if needed.</li>
+        <li>You see which device asked and <b class="text-slate-200">Approve</b> or <b class="text-slate-200">Deny</b>.</li>
+        <li>The CLI polls the server, receives a revocable <span class="code">tmin_…</span> bearer token and stores it with <span class="code">0600</span> permissions.</li>
+      </ol>
+      <p class="mt-3 text-sm leading-relaxed">Prefer a token you generated yourself? Two more methods:</p>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">tmin login --token &lt;secret&gt;   <span class="text-slate-500"># paste an API token (from the dashboard)</span>
+tmin login --password         <span class="text-slate-500"># classic username/password prompt</span></pre>
+      <p class="mt-3 text-sm leading-relaxed">Codes expire after 10 minutes, are one-time-use, and every approve/deny is audit-logged. Approving creates a normal API token that you can revoke anytime in the dashboard.</p>
+    </section>
+
+    <section id="tokens" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">API tokens</h2>
+      <p class="mt-2 text-sm leading-relaxed">Generate tokens in the <a href="/dashboard#api-tokens" class="text-brand-300 hover:text-brand-400">dashboard</a> (name + optional expiry; the secret is shown once) or from the CLI:</p>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">tmin token create --name laptop   <span class="text-slate-500"># secret printed ONCE</span>
+tmin token list
+tmin token revoke &lt;id&gt;</pre>
+      <p class="mt-3 text-sm leading-relaxed">Tokens are SHA-256 hashed at rest with last-used stamps and instant revocation. Never put tokens in URLs or shell history.</p>
+    </section>
+
+    <section id="anon" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Anonymous tunnels</h2>
+      <p class="mt-2 text-sm leading-relaxed"><span class="code">tmin http 3000 --anonymous</span> returns <span class="code">/a-xxxxxx</span>. The <b class="text-slate-200">server</b> sets expiry = start + <span class="code">ANONYMOUS_TUNNEL_TTL_SECONDS</span> (default 1800s); reconnecting with the resume token rejoins the <b class="text-slate-200">same</b> session without extending it. Offline anonymous paths show the offline page (502); expired ones return 410. Per-IP concurrency and body-size caps apply.</p>
+    </section>
+
+    <section id="named" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Named URLs</h2>
+      <p class="mt-2 text-sm leading-relaxed">Your account owns <span class="code">{{baseUrl}}/&lt;username&gt;</span> permanently. The route stays yours while offline (visitors see a friendly offline page); it never forwards to anyone else. Rename policy: only admins can rename, only with no live tunnels, fully audit-logged.</p>
+    </section>
+
+    <section id="slots" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Multiple tunnels and route slots</h2>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">tmin http 3000          <span class="text-slate-500"># → /you</span>
+tmin http 8080 --slot 2   <span class="text-slate-500"># → /you/2</span>
+tmin http 5000 --slot 3   <span class="text-slate-500"># → /you/3</span></pre>
+      <p class="mt-3 text-sm leading-relaxed">Allocation is transactional — concurrent connects can never double-book a slot. Max 3 live tunnels on the free plan (server-enforced, <span class="code">TUNNEL_LIMIT_REACHED</span>).</p>
+    </section>
+
+    <section id="forwarding" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">HTTP and WebSocket forwarding</h2>
+      <p class="mt-2 text-sm leading-relaxed">GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS, query strings, headers, cookies, redirects and streaming bodies are proxied. Bodies stream in 48&nbsp;KB chunks with backpressure — nothing unbounded is buffered. WebSocket upgrades are bridged bidirectionally with frame-size and lifetime caps. Timeouts (30s default), cancellation and quota-exhausted-mid-stream all return explicit errors.</p>
+    </section>
+
+    <section id="auth" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Authentication</h2>
+      <p class="mt-2 text-sm leading-relaxed">Browsers: HttpOnly + SameSite=Lax cookies, 7-day expiry, per-session revocation. CLI/API: <span class="code">tmin_…</span> bearer tokens, SHA-256 hashed at rest, optional expiry, last-used stamps, instant revocation. Passwords: scrypt (memory-hard, Node builtin). Reset tokens are single-use, 1-hour, and revoke all sessions. Auth endpoints are rate-limited with generic login failures.</p>
+    </section>
+
+    <section id="api" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">REST API reference</h2>
+      <p class="mt-2 text-sm leading-relaxed">Versioned under <span class="code">/api/v1</span>. Machine-readable spec at <a href="/openapi.json" class="text-brand-300 hover:text-brand-400">/openapi.json</a> (generated from the route table; CI checks sync). Errors are <span class="code">{error:{code,message},requestId}</span> with stable codes. Example:</p>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">curl -H "Authorization: Bearer &lt;token&gt;" {{baseUrl}}/api/v1/me</pre>
+    </section>
+
+    <section id="quotas" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Upload and download quotas</h2>
+      <p class="mt-2 text-sm leading-relaxed">Convention: <b class="text-slate-200">upload</b> = public→local request bytes; <b class="text-slate-200">download</b> = local→public response bytes. Defaults: 1&nbsp;GB/day each (<span class="code">FREE_*_LIMIT_BYTES</span>). Usage aggregates flush every 5s and survive restarts. Dashboards warn at 80%. Admins are uncapped. Exhaustion stops traffic with <span class="code">QUOTA_EXCEEDED_*</span>, never silently.</p>
+    </section>
+
+    <section id="access" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Access protection</h2>
+      <p class="mt-2 text-sm leading-relaxed">Planned per-route policies (basic-auth / bearer / IP allowlist / share tokens) are <b class="text-rose-300">not yet enforced</b> — all routes are currently public. Do not rely on URL secrecy for sensitive apps.</p>
+    </section>
+
+    <section id="domains" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Custom domains</h2>
+      <p class="mt-2 text-sm leading-relaxed"><b class="text-rose-300">Planned, not implemented.</b> Path routing (<span class="code">/username</span>) is the supported mode. Custom domains need DNS verification + per-domain TLS.</p>
+    </section>
+
+    <section id="env" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Environment variables</h2>
+      <p class="mt-2 text-sm leading-relaxed">See <span class="code">.env.example</span> — every knob is documented there (domain, secrets, TTLs, quotas, protocol limits, rate limits, retention, maintenance).</p>
+    </section>
+
+    <section id="deploy" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Self-hosted deployment</h2>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">git clone &lt;repo&gt; &amp;&amp; cd tmin
+npm ci --omit=dev &amp;&amp; npm run build
+SESSION_SECRET=… ADMIN_PASSWORD=… DATA_DIR=/var/lib/tmin npm start</pre>
+      <p class="mt-3 text-sm leading-relaxed">Single-server mode: one Node process, no database server. Run it under systemd (or any supervisor) — <span class="code">Restart=always</span>, <span class="code">EnvironmentFile=/etc/tmin.env</span>. Back up <span class="code">data/tmin.json</span> (all durable state).</p>
+    </section>
+
+    <section id="tls" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">TLS and DNS</h2>
+      <p class="mt-2 text-sm leading-relaxed">Point <span class="code">A tunnel.example.com → server IP</span>. Run Caddy in front (example config: <span class="code">deployment/Caddyfile</span>) — it obtains and renews Let's Encrypt certificates automatically and proxies HTTP+WebSocket to the app. Only trust <span class="code">X-Forwarded-For</span> when <span class="code">TRUST_PROXY=true</span> behind that proxy.</p>
+    </section>
+
+    <section id="admin" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Administration</h2>
+      <p class="mt-2 text-sm leading-relaxed">Admins manage users, renames, quotas, tunnels, anonymous sessions, audit logs, maintenance mode and server health from <a href="/admin" class="text-brand-300 hover:text-brand-400">/admin</a>. Every privileged action is audit-logged with actor, target and result.</p>
+      <h3 class="mt-4 text-sm font-semibold text-slate-200">How to log in as admin (web)</h3>
+      <ol class="mt-2 list-decimal space-y-1.5 pl-5 text-sm">
+        <li>Set <span class="code">ADMIN_USERNAME</span> and <span class="code">ADMIN_PASSWORD</span> (plus optional <span class="code">ADMIN_EMAIL</span>) in the server environment <b class="text-slate-200">before the first start</b>.</li>
+        <li>Start the server — the admin account is created once, from the environment.</li>
+        <li>Open <a href="/login" class="text-brand-300 hover:text-brand-400">/login</a> and sign in with those credentials. You are redirected to the dashboard; <a href="/admin" class="text-brand-300 hover:text-brand-400">/admin</a> unlocks automatically.</li>
+      </ol>
+      <p class="mt-3 text-sm leading-relaxed">Restarts <b class="text-slate-200">never</b> overwrite an existing admin password. Changing <span class="code">ADMIN_PASSWORD</span> later has no effect on a running database — use "Reset PW" on the admin page or delete the DB row intentionally.</p>
+    </section>
+
+    <section id="ui" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Web dashboard</h2>
+      <p class="mt-2 text-sm leading-relaxed">Static, mobile-responsive pages (system fonts + Tailwind via CDN, no build step) served by the same process:</p>
+      <ul class="mt-3 list-disc space-y-1.5 pl-5 text-sm">
+        <li><a href="/dashboard" class="text-brand-300 hover:text-brand-400">/dashboard</a> — tunnels, routes, usage, <b class="text-slate-200">API token generation</b>, sessions, password change.</li>
+        <li><a href="/admin" class="text-brand-300 hover:text-brand-400">/admin</a> — users, live tunnels, anonymous sessions, quotas, audit log, maintenance.</li>
+        <li><a href="/device" class="text-brand-300 hover:text-brand-400">/device</a> — approve <span class="code">tmin login</span> requests (device flow).</li>
+      </ul>
+    </section>
+
+    <section id="security" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Security</h2>
+      <p class="mt-2 text-sm leading-relaxed">Threat model, boundaries and controls: see SECURITY.md. Highlights: server-authoritative everything, segment-aware routing (no prefix capture), bounded buffers, fail-closed quota/auth, secret redaction, no stack traces in prod. Device codes are hashed at rest, single-use and expire in 10 minutes.</p>
+    </section>
+
+    <section id="trouble" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Troubleshooting</h2>
+      <pre class="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-4 font-mono text-[13px] text-slate-300">tmin doctor     <span class="text-slate-500"># DNS, TLS, auth, version checks</span>
+tmin status     <span class="text-slate-500"># connection, URL, usage</span>
+tmin usage --json</pre>
+      <p class="mt-3 text-sm leading-relaxed">Common: <span class="code">TUNNEL_LIMIT_REACHED</span> → stop a tunnel; <span class="code">QUOTA_EXCEEDED_*</span> → daily bandwidth cap reached; <span class="code">ANON_EXPIRED</span> → anonymous links expire by design; <span class="code">AUTHORIZATION_PENDING</span> → approve the CLI code in the browser; <span class="code">DEVICE_CODE_EXPIRED</span> → run <span class="code">tmin login</span> again. If a named path shows the offline page, (re)start your CLI.</p>
+    </section>
+
+    <section id="monitor" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">Operational monitoring</h2>
+      <p class="mt-2 text-sm leading-relaxed"><span class="code">GET /health</span> (public), <span class="code">GET /ready</span> (db check), <span class="code">GET /api/v1/admin/metrics</span> (live tunnels, latency, error rate, bytes). Structured JSON logs with request correlation IDs.</p>
+    </section>
+
+    <section id="faq" class="card mb-4 p-6">
+      <h2 class="text-lg font-semibold text-white">FAQ</h2>
+      <p class="mt-2 text-sm leading-relaxed">
+        <b class="text-slate-200">Does my URL change on reconnect?</b> No — registered URLs are permanent.<br>
+        <b class="text-slate-200">Can someone steal my offline route?</b> No — ownership is per-account in the database.<br>
+        <b class="text-slate-200">Is there a login page?</b> Yes — <a href="/login" class="text-brand-300 hover:text-brand-400">/login</a>. Registration creates accounts; the admin uses the env-bootstrapped credentials above.<br>
+        <b class="text-slate-200">Why scrypt instead of argon2?</b> Zero native deps keeps installs tiny and reproducible; still memory-hard.<br>
+        <b class="text-slate-200">Horizontal scaling?</b> Not with the embedded store — single-server mode is supported; multi-instance needs Postgres (planned).
+      </p>
+    </section>
+
+    <div class="pb-10 text-center text-xs text-slate-600">tmin v{{version}} · <a href="/openapi.json" class="hover:text-slate-400">OpenAPI</a> · <a href="/" class="hover:text-slate-400">Home</a></div>
+  </main>
+</div>
+</body>
+</html>

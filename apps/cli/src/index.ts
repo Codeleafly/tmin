@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /** tmin CLI — cross-platform, zero deps beyond ws. */
-import * as readline from "node:readline";
 import * as dns from "node:dns";
 import * as net from "node:net";
 import { loadConfig, saveConfig, readRuntime, removeRuntime, configPath, type CliConfig } from "./config";
 import { api, explain, type ApiError } from "./api";
 import { runHttpTunnel } from "./forward";
+import { loginCommand } from "./login";
 
 export const VERSION = "0.1.0";
 const PROTOCOL_VERSION = 1;
@@ -15,7 +15,9 @@ function help(): string {
 
 Usage:
   tmin http <port> [--slot 1|2|3] [--anonymous] [--target-host 127.0.0.1] [--json]
-  tmin login [--server URL]            Log in (token stored with 0600 perms)
+  tmin login [--server URL] [--no-browser]  OAuth-style device flow (approve in browser)
+  tmin login --token <secret>          Log in with an existing API token
+  tmin login --password                Log in with username/password (creates a token)
   tmin logout                          Revoke token and clear local config
   tmin status [--json]                 Connection state + account summary
   tmin tunnels [--json]                List server-side tunnels
@@ -33,47 +35,6 @@ Usage:
   tmin update                          Update instructions
   tmin version                          Print version
 `;
-}
-
-function ask(q: string, hidden: boolean): Promise<string> {
-  const rl = readline.createInterface({ input: process.stdin, output: hidden ? undefined : process.stdout });
-  return new Promise((resolve) => {
-    if (hidden) {
-      process.stdout.write(q);
-      let buf = "";
-      const onData = (c: Buffer) => {
-        const s = c.toString("utf8");
-        if (s === "\n" || s === "\r") {
-          process.stdin.off("data", onData);
-          try {
-            process.stdin.setRawMode?.(false);
-          } catch {
-            undefined;
-          }
-          process.stdout.write("\n");
-          rl.close();
-          resolve(buf);
-        } else if (s === "\u0003") {
-          process.exit(130);
-        } else if (s === "\u007f") {
-          buf = buf.slice(0, -1);
-        } else {
-          buf += s;
-        }
-      };
-      try {
-        process.stdin.setRawMode?.(true);
-      } catch {
-        undefined;
-      }
-      process.stdin.on("data", onData);
-    } else {
-      rl.question(q, (a) => {
-        rl.close();
-        resolve(a.trim());
-      });
-    }
-  });
 }
 
 function pick(args: string[], ...names: string[]): string | null {
@@ -124,29 +85,8 @@ async function main(): Promise<number> {
         });
       }
 
-      case "login": {
-        const serverFlag = pick(rest, "--server", "-s");
-        if (serverFlag) {
-          cfg.server = serverFlag.replace(/\/$/, "");
-          await saveConfig(cfg);
-        }
-        const login = await ask("Username or email: ", false);
-        const password = await ask("Password: ", true);
-        if (!login || !password) {
-          console.error("Login and password are required.");
-          return 2;
-        }
-        const loginRes = await api<{ user: { username: string } }>(cfg, "POST", "/api/v1/auth/login", { login, password });
-        const cookie = (loginRes.cookieOut || "").split(";")[0];
-        const name = `cli-${new Date().toISOString().slice(0, 10)}`;
-        const created = await api<{ token: { id: string; prefix: string }; secret: string }>(cfg, "POST", "/api/v1/tokens", { name }, cookie);
-        cfg.token = created.data.secret;
-        cfg.tokenPrefix = created.data.token.prefix;
-        cfg.username = loginRes.data.user.username;
-        await saveConfig(cfg);
-        console.log(json ? JSON.stringify({ ok: true, user: cfg.username }) : `Logged in as ${cfg.username} (token ${created.data.token.prefix}…, stored in ${configPath()}).`);
-        return 0;
-      }
+      case "login":
+        return await loginCommand(cfg, rest, json);
 
       case "logout": {
         if (cfg.token) {

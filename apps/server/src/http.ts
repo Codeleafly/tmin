@@ -23,12 +23,23 @@ export function sendError(
   sendJson(res, statusFor(code), { error: { code, message, details }, requestId: rid }, rid);
 }
 
+/**
+ * CSP for server-rendered pages. Allows the Tailwind Play CDN (UI styling) and
+ * inline style/config blocks; everything else stays same-origin.
+ */
+export const PAGE_CSP =
+  "default-src 'self'; " +
+  "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " +
+  "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " +
+  "img-src 'self' data:; font-src 'self' data:; connect-src 'self'; " +
+  "base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+
 export function sendHtml(res: ServerResponse, html: string, status = 200): void {
   const buf = Buffer.from(html, "utf8");
   res.writeHead(status, {
     "content-type": "text/html; charset=utf-8",
     "content-length": buf.length,
-    "content-security-policy": "default-src 'self'; style-src 'unsafe-inline' 'self'; script-src 'unsafe-inline' 'self'",
+    "content-security-policy": PAGE_CSP,
     "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer",
     "cache-control": "no-store",

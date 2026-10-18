@@ -7,7 +7,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export interface UserRow {
   id: string;
@@ -83,6 +83,24 @@ export interface ResetRow {
   usedAt: number | null;
 }
 
+/**
+ * OAuth-style device authorization request (CLI login).
+ * Only the hash of the device code is stored; user codes are one-time and short-lived.
+ */
+export interface DeviceAuthRow {
+  id: string;
+  deviceCodeHash: string;
+  userCode: string;
+  clientName: string;
+  createdAt: number;
+  expiresAt: number;
+  intervalSeconds: number;
+  lastPollAt: number | null;
+  status: "pending" | "approved" | "denied" | "consumed";
+  userId: string | null;
+  approvedAt: number | null;
+}
+
 export interface AuditRow {
   id: string;
   at: number;
@@ -137,6 +155,7 @@ export interface DbShape {
   audit: AuditRow[];
   requestLogs: RequestLogRow[];
   tunnels: TunnelMetaRow[];
+  deviceAuths: DeviceAuthRow[];
   settings: { maintenanceMode: boolean };
 }
 
@@ -153,6 +172,7 @@ export function emptyDb(): DbShape {
     audit: [],
     requestLogs: [],
     tunnels: [],
+    deviceAuths: [],
     settings: { maintenanceMode: false },
   };
 }
@@ -173,6 +193,7 @@ export function migrate(db: Record<string, unknown>): DbShape {
     audit: (d.audit as DbShape["audit"]) ?? [],
     requestLogs: (d.requestLogs as DbShape["requestLogs"]) ?? [],
     tunnels: (d.tunnels as DbShape["tunnels"]) ?? [],
+    deviceAuths: (d.deviceAuths as DbShape["deviceAuths"]) ?? [],
     settings: (d.settings as DbShape["settings"]) ?? { maintenanceMode: false },
   };
   if (v < 1) {
@@ -202,6 +223,11 @@ export function migrate(db: Record<string, unknown>): DbShape {
     if (!Array.isArray(base.anonSessions)) base.anonSessions = [];
     if (!Array.isArray(base.tunnels)) base.tunnels = [];
     v = 3;
+  }
+  if (v < 4) {
+    // v4: device authorization requests (OAuth-style CLI login)
+    if (!Array.isArray(base.deviceAuths)) base.deviceAuths = [];
+    v = 4;
   }
   base.schemaVersion = SCHEMA_VERSION;
   return base;

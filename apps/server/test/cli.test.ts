@@ -8,17 +8,19 @@ type CliChild = ChildProcessByStdio<null, Readable, Readable>;
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { boot, http, mkUser, mkToken, startTarget, sleep, internals, type TestServer } from "./helpers";
+import { boot, http, post, mkUser, mkToken, startTarget, sleep, internals, type TestServer } from "./helpers";
 
 const CLI = resolve(__dirname, "../../cli/src/index.js");
 
-interface Connected { event: string; routePath?: string; publicUrl?: string; attempt?: number }
+interface Connected { event: string; routePath?: string; publicUrl?: string; attempt?: number; userCode?: string; user?: string; tokenPrefix?: string }
 
-function spawnCli(env: Record<string, string>, args: string[]): { child: CliChild; events: Connected[]; waitFor: (pred: (e: Connected) => boolean, ms?: number) => Promise<Connected>; stderr: () => string } {
+function spawnCli(env: Record<string, string>, args: string[]): { child: CliChild; events: Connected[]; exited: Promise<number>; waitFor: (pred: (e: Connected) => boolean, ms?: number) => Promise<Connected>; stderr: () => string } {
   const child = spawn(process.execPath, [CLI, ...args], {
     env: { ...process.env, ...env },
     stdio: ["ignore", "pipe", "pipe"],
   });
+  // Capture the exit eagerly: the CLI can exit before a later `on("exit")` attaches.
+  const exited = new Promise<number>((res) => child.once("exit", (code) => res(code ?? -1)));
   const events: Connected[] = [];
   let errBuf = "";
   child.stderr.on("data", (d: Buffer) => {
@@ -51,7 +53,7 @@ function spawnCli(env: Record<string, string>, args: string[]): { child: CliChil
         }
       }, 100);
     });
-  return { child, events, waitFor, stderr: () => errBuf };
+  return { child, events, exited, waitFor, stderr: () => errBuf };
 }
 
 describe("real CLI against real server", () => {
@@ -92,9 +94,8 @@ describe("real CLI against real server", () => {
     await sleep(200);
     assert.equal((await http(s.base, "GET", "/zena/echo")).status, 200);
     // clean SIGINT exit
-    const exited = new Promise<number>((r) => cli.child.on("exit", (code) => r(code ?? -1)));
     cli.child.kill("SIGINT");
-    const code = await Promise.race([exited, sleep(5000).then(() => -99)]);
+    const code = await Promise.race([cli.exited, sleep(5000).then(() => -99)]);
     assert.equal(code, 0);
   });
 
@@ -107,8 +108,7 @@ describe("real CLI against real server", () => {
       assert.ok(connected.routePath?.startsWith("/a-"));
       assert.equal((await http(s2.base, "GET", `${connected.routePath}/echo`)).status, 200);
       // after TTL the server closes the session (reconnectMs 0) → CLI exits fatally
-      const exited = new Promise<number>((r) => cli.child.on("exit", (code) => r(code ?? -1)));
-      const code = await Promise.race([exited, sleep(8000).then(() => -99)]);
+      const code = await Promise.race([cli.exited, sleep(8000).then(() => -99)]);
       assert.equal(code, 1, `anon CLI should exit(1) after expiry, got ${code}; stderr=${cli.stderr().slice(0, 300)}`);
       assert.equal(cli.events.filter((e) => e.event === "connected").length, 1);
       await tgt.close();
@@ -117,9 +117,33 @@ describe("real CLI against real server", () => {
     }
   });
 
+  it("device-flow login: browser approval yields a stored bearer token", async () => {
+    const { cookie } = await mkUser(s.base, "flowuser");
+    const cli = spawnCli({ TMIN_SERVER: s.base, HOME: home }, ["login", "--json", "--no-browser"]);
+    const authz = await cli.waitFor((e) => e.event === "device_authorization");
+    assert.ok(authz.userCode, "CLI must print the user code");
+    const approve = await post(s.base, "/api/v1/auth/device/verify", { user_code: authz.userCode, action: "approve" }, { cookie });
+    assert.equal(approve.status, 200, approve.body.toString());
+    const logged = await cli.waitFor((e) => e.event === "logged_in", 20000);
+    assert.equal(logged.user, "flowuser");
+    assert.match(String(logged.tokenPrefix), /^tm_/);
+    const code = await cli.exited;
+    assert.equal(code, 0, `CLI should exit 0 after login; stderr=${cli.stderr().slice(0, 300)}`);
+  });
+
+  it("token login: --token validates the secret against the server", async () => {
+    const { cookie } = await mkUser(s.base, "tokenuser");
+    const token = await mkToken(s.base, cookie);
+    const cli = spawnCli({ TMIN_SERVER: s.base, HOME: home }, ["login", "--token", token, "--json"]);
+    const logged = await cli.waitFor((e) => e.event === "logged_in");
+    assert.equal(logged.user, "tokenuser");
+    const code = await cli.exited;
+    assert.equal(code, 0);
+  });
+
   it("doctor passes against a healthy server", async () => {
     const cli = spawnCli({ TMIN_SERVER: s.base, HOME: home }, ["doctor", "--json"]);
-    const code = await new Promise<number>((r) => cli.child.on("exit", (c) => r(c ?? -1)));
+    const code = await Promise.race([cli.exited, sleep(15000).then(() => -99)]);
     assert.equal(code, 0, `doctor stderr=${cli.stderr().slice(0, 300)}`);
   });
 });

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create account · tmin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2334d399'/%3E%3Cpath d='M9 12h14M16 12v9' stroke='%23022c22' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { brand: { 300: "#6ee7b7", 400: "#34d399", 500: "#10b981", 600: "#059669" } },
+  fontFamily: { mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"] },
+} } };
+</script>
+<link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/app.js" defer></script>
+<script src="/assets/register.js" defer></script>
+</head>
+<body class="flex min-h-screen flex-col bg-slate-950 text-slate-200 antialiased">
+
+<div class="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+  <div class="absolute -top-32 left-1/2 h-80 w-[44rem] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl"></div>
+</div>
+
+<header class="relative z-10">
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+    <a href="/" class="flex items-center gap-2.5 font-semibold text-white">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-cyan-400 text-slate-950">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 8h14M12 8v11"/></svg>
+      </span>
+      <span class="text-lg tracking-tight">tmin</span>
+    </a>
+    <a href="/login" class="text-sm text-slate-400 hover:text-white">Log in</a>
+  </div>
+</header>
+
+<main class="relative z-10 flex flex-1 items-center justify-center px-4 py-10">
+  <div class="w-full max-w-md fade-in">
+    <div class="card p-7 sm:p-8">
+      <h1 class="text-xl font-bold text-white">Create your account</h1>
+      <p class="mt-1.5 text-sm text-slate-400">Claim a permanent <span class="code">/username</span> URL on this server. Free.</p>
+
+      <form id="regForm" class="mt-6 space-y-4" novalidate>
+        <div>
+          <label class="label" for="username">Username</label>
+          <input id="username" class="field" autocomplete="username" placeholder="yourname" minlength="3" maxlength="32" required>
+          <p class="mt-1.5 text-xs text-slate-500">3–32 characters · lowercase letters, digits, <span class="code">-</span> and <span class="code">_</span> · becomes your public URL</p>
+        </div>
+        <div>
+          <label class="label" for="email">Email</label>
+          <input id="email" type="email" class="field" autocomplete="email" placeholder="you@example.com" required>
+        </div>
+        <div>
+          <label class="label" for="password">Password</label>
+          <input id="password" type="password" class="field" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required>
+        </div>
+        <div>
+          <label class="label" for="confirm">Confirm password</label>
+          <input id="confirm" type="password" class="field" autocomplete="new-password" placeholder="Repeat your password" required>
+        </div>
+
+        <div id="error" class="hidden rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-300"></div>
+
+        <button id="submitBtn" type="submit" class="btn-primary w-full">Create account</button>
+      </form>
+
+      <p class="mt-5 text-center text-sm text-slate-400">
+        Already registered? <a href="/login" class="font-medium text-brand-300 hover:text-brand-400">Log in</a>
+      </p>
+    </div>
+
+    <div class="mt-5 flex items-start gap-2.5 px-1 text-xs leading-relaxed text-slate-500">
+      <svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7z"/></svg>
+      <span>Passwords are hashed with scrypt. Usernames starting with <span class="code">a-</span> are reserved for anonymous links.</span>
+    </div>
+  </div>
+</main>
+</body>
+</html>

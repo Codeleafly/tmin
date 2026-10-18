@@ -10,9 +10,9 @@ import { handleAuth } from "./api/auth";
 import { handleApi } from "./api/resources";
 import { handleAdmin } from "./api/admin";
 import { buildOpenApi } from "./api/openapi";
-import { sendJson, sendError, sendHtml, clientIp } from "./http";
-import { landingPage, loginPage, registerPage, dashboardPage, adminPage } from "./web/pages";
-import { docsPage } from "./web/docs";
+import { sendJson, sendError, clientIp } from "./http";
+import { servePage, serveAsset, pageFor } from "./web/static";
+import { handleDevice } from "./api/device";
 import { recoverAfterRestart, startSweeper } from "./sweeper";
 import { RateLimiter } from "./middleware/ratelimit";
 
@@ -128,6 +128,7 @@ export async function start(): Promise<Started> {
         return;
       }
       if (await handleAuth(req, res, store, cfg, pathname, requestId)) return;
+      if (await handleDevice(req, res, store, cfg, pathname, requestId)) return;
       if (await handleApi(req, res, store, cfg, pathname, requestId)) return;
       if (await handleAdmin(req, res, store, cfg, pathname, query, requestId)) return;
       if (method === "GET" && pathname === "/api/v1/openapi.json") {
@@ -148,16 +149,16 @@ export async function start(): Promise<Started> {
       res.end(spec);
       return;
     }
-    // 4. Web UI + docs.
-    if (method === "GET" && pathname === "/") {
-      sendHtml(res, landingPage(cfg.publicBaseUrl, cfg.anonymousTtlSeconds));
-      return;
+    // 4. Web UI — static pages from web/ (Tailwind CDN + /assets JS, no build step).
+    if (method === "GET") {
+      const page = pathname.startsWith("/docs/") ? pageFor("/docs") : pageFor(pathname);
+      if (page && servePage(res, page, cfg)) return;
+      if (pathname.startsWith("/assets/")) {
+        if (serveAsset(res, pathname.slice("/assets/".length), requestId)) return;
+        sendError(res, "NOT_FOUND", "Asset not found.", undefined, requestId);
+        return;
+      }
     }
-    if (method === "GET" && pathname === "/login") return sendHtml(res, loginPage());
-    if (method === "GET" && pathname === "/register") return sendHtml(res, registerPage());
-    if (method === "GET" && pathname === "/dashboard") return sendHtml(res, dashboardPage());
-    if (method === "GET" && pathname === "/admin") return sendHtml(res, adminPage());
-    if (method === "GET" && (pathname === "/docs" || pathname.startsWith("/docs/"))) return sendHtml(res, docsPage());
     // 5. Reserved/system paths never forward to tunnels.
     if (SYSTEM_PREFIXES.has(first)) {
       sendError(res, "NOT_FOUND", "Not found.", undefined, requestId);

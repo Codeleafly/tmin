@@ -8,7 +8,10 @@ import { validateClientFrame, validateServerFrame } from "../../../packages/prot
 import { hashPassword, verifyPassword } from "../../../packages/shared/src/passwords";
 import { loadConfig } from "../../../packages/shared/src/config";
 import { str, port as isPort, email } from "../../../packages/shared/src/validate";
-import { dashboardPage, adminPage, loginPage, registerPage, landingPage } from "../src/web/pages";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { migrate, SCHEMA_VERSION } from "../src/db/store";
+import { renderTemplate, renderOffline, pageFor, webDir } from "../src/web/static";
 
 describe("usernames", () => {
   it("normalizes case", () => {
@@ -124,22 +127,98 @@ describe("protocol validation", () => {
   });
 });
 
-describe("served pages", () => {
-  it("inline scripts parse as valid JavaScript", () => {
-    const pages: Array<[string, string]> = [
-      ["landing", landingPage("http://x")],
-      ["login", loginPage()],
-      ["register", registerPage()],
-      ["dashboard", dashboardPage()],
-      ["admin", adminPage()],
-    ];
-    for (const [name, html] of pages) {
-      const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-      assert.ok(scripts.length >= 1, `${name}: missing script tag`);
-      for (const s of scripts) {
-        assert.doesNotThrow(() => new Function(s), `${name}: inline script syntax error`);
+describe("static web UI", () => {
+  const dir = webDir();
+  it("web directory resolves with all pages", () => {
+    assert.ok(dir, "web/ directory must be resolvable from the built server");
+    for (const [route, file] of [
+      ["/", "index.html"],
+      ["/login", "login.html"],
+      ["/register", "register.html"],
+      ["/dashboard", "dashboard.html"],
+      ["/admin", "admin.html"],
+      ["/docs", "docs.html"],
+      ["/device", "device.html"],
+    ] as Array<[string, string]>) {
+      assert.equal(pageFor(route), file, route);
+      assert.ok(existsSync(join(dir!, file)), `${file} must exist`);
+    }
+    assert.equal(pageFor("/nope"), null);
+    assert.ok(existsSync(join(dir!, "offline.html")), "offline.html must exist (gateway 502 page)");
+  });
+
+  it("pages are mobile-responsive, CDN-styled and reference existing assets", () => {
+    for (const file of ["index.html", "login.html", "register.html", "dashboard.html", "admin.html", "docs.html", "device.html", "offline.html"]) {
+      const html = readFileSync(join(dir!, file), "utf8");
+      assert.ok(html.includes('name="viewport"'), `${file}: missing viewport meta`);
+      assert.ok(html.includes("cdn.tailwindcss.com"), `${file}: Tailwind CDN missing`);
+      for (const m of html.matchAll(/<script src="(\/assets\/[^"]+)"/g)) {
+        const asset = m[1].slice("/assets/".length);
+        assert.ok(existsSync(join(dir!, "assets", asset)), `${file}: missing asset ${m[1]}`);
+      }
+      for (const m of html.matchAll(/<link[^>]+href="(\/assets\/[^"]+)"/g)) {
+        const asset = m[1].slice("/assets/".length);
+        assert.ok(existsSync(join(dir!, "assets", asset)), `${file}: missing asset ${m[1]}`);
       }
     }
+  });
+
+  it("inline and asset scripts parse as valid JavaScript", () => {
+    const files = ["app.js", "login.js", "register.js", "dashboard.js", "admin.js", "device.js"];
+    for (const f of files) {
+      const src = readFileSync(join(dir!, "assets", f), "utf8");
+      assert.doesNotThrow(() => new Function(src), `${f}: syntax error`);
+    }
+    for (const f of ["index.html", "login.html", "register.html", "dashboard.html", "admin.html", "device.html", "docs.html"]) {
+      const html = readFileSync(join(dir!, f), "utf8");
+      for (const s of [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1])) {
+        assert.doesNotThrow(() => new Function(s), `${f}: inline script syntax error`);
+      }
+    }
+  });
+
+  it("template placeholders render with server values", () => {
+    const cfg = loadConfig();
+    const out = renderTemplate("<i>{{baseUrl}}|{{anonTtlSeconds}}|{{anonTtlMinutes}}|{{version}}</i>", cfg);
+    assert.ok(!out.includes("{{"), "all placeholders must be replaced");
+    assert.ok(out.includes(cfg.publicBaseUrl.replace(/\/$/, "")));
+  });
+
+  it("offline page renders from web/ and escapes the route path", () => {
+    const raw = readFileSync(join(dir!, "offline.html"), "utf8");
+    assert.ok(raw.includes("{{routePath}}"), "offline.html must carry the routePath placeholder");
+    const out = renderOffline(raw, loadConfig(), `/x-<script>alert("pwn")</script>`);
+    assert.ok(!out.includes("<script>alert"), "route path must be HTML-escaped");
+    assert.ok(out.includes("&lt;script&gt;"));
+    assert.ok(out.includes("offline"), "offline page must say so");
+    assert.ok(!out.includes("{{"), "all placeholders must be replaced");
+  });
+
+  it("wired pages: login/register/device/dashboard scripts exist", () => {
+    const index = readFileSync(join(dir!, "index.html"), "utf8");
+    assert.ok(index.includes('href="/login"'), "landing must link to login");
+    assert.ok(index.includes('href="/register"'), "landing must link to register");
+    const login = readFileSync(join(dir!, "login.html"), "utf8");
+    assert.ok(login.includes("ADMIN_PASSWORD"), "login page must document admin bootstrap");
+    const device = readFileSync(join(dir!, "device.html"), "utf8");
+    assert.ok(device.includes("device_code") || device.includes("/device"), "device page wired");
+  });
+});
+
+describe("db migrations", () => {
+  it("v3 databases upgrade to v4 with an empty deviceAuths table", () => {
+    const v3 = {
+      schemaVersion: 3,
+      users: [], sessions: [], tokens: [], routes: [], anonSessions: [], usage: [],
+      resets: [], audit: [], requestLogs: [], tunnels: [], settings: { maintenanceMode: false },
+    };
+    const db = migrate(v3 as unknown as Record<string, unknown>);
+    assert.equal(db.schemaVersion, SCHEMA_VERSION);
+    assert.deepEqual(db.deviceAuths, []);
+  });
+  it("brand new databases carry deviceAuths", () => {
+    const db = migrate({});
+    assert.deepEqual(db.deviceAuths, []);
   });
 });
 

@@ -55,6 +55,15 @@ export function explain(e: ApiError): string {
       return "Anonymous session expired. Start a new tunnel or `tmin login` for permanent URLs.";
     case "INVALID_CREDENTIALS":
       return "Invalid credentials. Try again.";
+    case "AUTHORIZATION_PENDING":
+      return "Waiting for you to approve the code in the browser…";
+    case "SLOW_DOWN":
+      return "Polling too fast; slowing down automatically.";
+    case "ACCESS_DENIED":
+      return "The device login request was denied in the browser.";
+    case "INVALID_DEVICE_CODE":
+    case "DEVICE_CODE_EXPIRED":
+      return "Device code invalid or expired. Run `tmin login` again.";
     case "TOKEN_REVOKED":
       return "Saved token is revoked or expired. Run `tmin login` again.";
     case "NOT_AUTHENTICATED":

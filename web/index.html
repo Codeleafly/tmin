@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en" class="scroll-pt-20">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tmin — self-hosted tunnels for localhost</title>
+<meta name="description" content="tmin exposes your localhost to the internet through your own server: permanent /username URLs, anonymous short-lived links, quotas and a documented REST API.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2334d399'/%3E%3Cpath d='M9 12h14M16 12v9' stroke='%23022c22' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: { brand: { 300: "#6ee7b7", 400: "#34d399", 500: "#10b981", 600: "#059669" } },
+    fontFamily: { mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"] },
+  } },
+};
+</script>
+<link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/app.js" defer></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-200 antialiased">
+
+<div class="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+  <div class="absolute -top-40 left-1/2 h-96 w-[52rem] -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl"></div>
+  <div class="absolute top-1/3 -right-32 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl"></div>
+</div>
+
+<header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+  <nav class="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <a href="/" class="flex items-center gap-2.5 font-semibold text-white">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-cyan-400 text-slate-950">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 8h14M12 8v11"/></svg>
+      </span>
+      <span class="text-lg tracking-tight">tmin</span>
+    </a>
+    <div class="hidden items-center gap-7 text-sm text-slate-300 md:flex">
+      <a href="#features" class="hover:text-white">Features</a>
+      <a href="#how" class="hover:text-white">How it works</a>
+      <a href="/docs" class="hover:text-white">Docs</a>
+      <a href="/openapi.json" class="hover:text-white">API</a>
+    </div>
+    <div class="hidden items-center gap-2.5 md:flex">
+      <a href="/login" class="btn-ghost btn-sm">Log in</a>
+      <a href="/register" class="btn-primary btn-sm">Get started</a>
+    </div>
+    <button id="navBtn" class="rounded-lg border border-white/15 p-2 text-slate-300 md:hidden" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </nav>
+  <div id="navMenu" class="hidden border-t border-white/10 px-4 py-4 md:hidden">
+    <div class="flex flex-col gap-1 text-sm">
+      <a href="#features" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">Features</a>
+      <a href="#how" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">How it works</a>
+      <a href="/docs" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">Docs</a>
+      <a href="/openapi.json" class="rounded-lg px-3 py-2.5 text-slate-300 hover:bg-white/5">OpenAPI</a>
+      <div class="mt-2 flex gap-2 px-1">
+        <a href="/login" class="btn-ghost flex-1">Log in</a>
+        <a href="/register" class="btn-primary flex-1">Get started</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="relative mx-auto max-w-6xl px-4">
+
+  <!-- Hero -->
+  <section class="grid items-center gap-12 pt-16 pb-14 md:grid-cols-2 md:pt-24">
+    <div class="fade-in">
+      <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3.5 py-1.5 text-xs font-medium text-brand-300">
+        <span class="dot on"></span> Self-hosted · single process · no database server
+      </div>
+      <h1 class="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
+        Your localhost,<br class="hidden sm:block"> on <span class="grad-text">your own server</span>.
+      </h1>
+      <p class="mt-5 max-w-lg text-base leading-relaxed text-slate-400">
+        tmin is a complete tunneling platform you host yourself — permanent
+        <span class="code">/username</span> URLs, anonymous short-lived links, bandwidth quotas,
+        dashboards and a documented REST API. One small Node process. No vendor in the middle.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <a href="/register" class="btn-primary">Create your account</a>
+        <a href="/login" class="btn-ghost">Log in</a>
+        <a href="/docs" class="group inline-flex items-center gap-1.5 px-1 text-sm text-slate-400 hover:text-white">
+          Read the docs
+          <svg class="transition group-hover:translate-x-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+      <div class="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500">
+        <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg> HTTP + WebSocket forwarding</span>
+        <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg> OAuth-style CLI login</span>
+        <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg> revocable API tokens</span>
+      </div>
+    </div>
+
+    <div class="fade-in fade-in-1">
+      <div class="term">
+        <div class="term-bar">
+          <span class="term-dot" style="background:#f87171"></span>
+          <span class="term-dot" style="background:#fbbf24"></span>
+          <span class="term-dot" style="background:#34d399"></span>
+          <span class="ml-3 text-xs text-slate-500">terminal — your machine</span>
+        </div>
+        <pre><span class="c"># instant, no account needed</span>
+<span class="g">$</span> tmin http 3000 --anonymous
+  → {{baseUrl}}/a-4f9c2e   <span class="y">expires in {{anonTtlMinutes}} min</span>
+
+<span class="c"># permanent URL under your account</span>
+<span class="g">$</span> tmin login
+  Open {{baseUrl}}/device
+  Code: <span class="y">K7PQ-3M2X</span>   <span class="c">(approve in browser)</span>
+  ✓ Logged in as you
+
+<span class="g">$</span> tmin http 3000
+  ● {{baseUrl}}/you  <span class="c">→ 127.0.0.1:3000</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="grid grid-cols-2 gap-3 pb-16 md:grid-cols-4">
+    <div class="card p-5">
+      <div class="text-2xl font-bold text-white">{{anonTtlMinutes}} min</div>
+      <div class="mt-1 text-xs text-slate-500">anonymous session TTL, server-enforced</div>
+    </div>
+    <div class="card p-5">
+      <div class="text-2xl font-bold text-white">3 slots</div>
+      <div class="mt-1 text-xs text-slate-500">/you · /you/2 · /you/3 with transactional allocation</div>
+    </div>
+    <div class="card p-5">
+      <div class="text-2xl font-bold text-white">1 GB/day</div>
+      <div class="mt-1 text-xs text-slate-500">default free bandwidth quota, fail-closed</div>
+    </div>
+    <div class="card p-5">
+      <div class="text-2xl font-bold text-white">1 dep</div>
+      <div class="mt-1 text-xs text-slate-500">runtime dependency: ws. install is ~3 MB</div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="pb-16">
+    <h2 class="text-center text-2xl font-bold text-white sm:text-3xl">Everything a tunnel needs</h2>
+    <p class="mx-auto mt-3 max-w-xl text-center text-sm text-slate-400">Server-authoritative by design: quotas, expiry and ownership are enforced on the server, never on trust.</p>
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="card card-hover p-6">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-400/15 text-brand-300">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11 4.9"/><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07L12.9 19"/></svg>
+        </div>
+        <h3 class="font-semibold text-white">Permanent named URLs</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">Your account owns <span class="code">/username</span> forever. Offline routes show a friendly page — they never hand your path to someone else.</p>
+      </div>
+      <div class="card card-hover p-6">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/15 text-cyan-300">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <h3 class="font-semibold text-white">Anonymous instant links</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">One command, no account: a short-lived <span class="code">/a-xxxxxx</span> link. Expiry is owned by the server — reconnects reuse it, never extend it.</p>
+      </div>
+      <div class="card card-hover p-6">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-violet-400/15 text-violet-300">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+        </div>
+        <h3 class="font-semibold text-white">OAuth-style CLI login</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">Device-code flow: approve from your browser, the CLI receives a revocable token. API tokens work everywhere too — CLI, curl, CI.</p>
+      </div>
+      <div class="card card-hover p-6">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 19v-6M12 19V7M17 19v-3"/></svg>
+        </div>
+        <h3 class="font-semibold text-white">Quotas &amp; usage</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">Upload/download accounting per day, visible in the dashboard with progress bars. Exhaustion stops traffic explicitly — never silently.</p>
+      </div>
+      <div class="card card-hover p-6">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-rose-400/15 text-rose-300">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7z"/></svg>
+        </div>
+        <h3 class="font-semibold text-white">Admin &amp; audit trail</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">Bootstrap an admin from env vars, then manage users, quotas, tunnels and maintenance — every privileged action is audit-logged.</p>
+      </div>
+      <div class="card card-hover p-6">
+        <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14"/></svg>
+        </div>
+        <h3 class="font-semibold text-white">Documented REST API</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">Versioned under <span class="code">/api/v1</span> with a generated OpenAPI spec. Create tokens in the dashboard and automate everything.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how" class="pb-16">
+    <h2 class="text-center text-2xl font-bold text-white sm:text-3xl">How it works</h2>
+    <div class="mt-10 grid gap-4 md:grid-cols-3">
+      <div class="card relative overflow-hidden p-6">
+        <div class="absolute -right-3 -top-5 text-7xl font-black text-white/5">1</div>
+        <h3 class="font-semibold text-white">Run your server</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">One Node process serves the API, WebSocket control plane, gateway and dashboards. TLS via any reverse proxy.</p>
+        <pre class="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-3 font-mono text-xs text-slate-300"><span class="text-slate-500">$</span> npm start
+<span class="text-brand-400">listening on 0.0.0.0:8080</span></pre>
+      </div>
+      <div class="card relative overflow-hidden p-6">
+        <div class="absolute -right-3 -top-5 text-7xl font-black text-white/5">2</div>
+        <h3 class="font-semibold text-white">Dial out from your machine</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">The CLI connects out to the server and forwards public traffic to your local app. The server never dials into your network.</p>
+        <pre class="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/70 p-3 font-mono text-xs text-slate-300"><span class="text-slate-500">$</span> tmin login
+<span class="text-slate-500">$</span> tmin http 3000</pre>
+      </div>
+      <div class="card relative overflow-hidden p-6">
+        <div class="absolute -right-3 -top-5 text-7xl font-black text-white/5">3</div>
+        <h3 class="font-semibold text-white">Share the URL</h3>
+        <p class="mt-2 text-sm leading-relaxed text-slate-400">Visitors hit <span class="code">/you</span> on your domain; traffic rides the tunnel back to localhost. Watch it live in the dashboard.</p>
+        <div class="mt-4 rounded-xl border border-brand-400/25 bg-brand-400/10 p-3 font-mono text-xs text-brand-300">→ {{baseUrl}}/you</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="pb-20">
+    <div class="card relative overflow-hidden p-8 text-center sm:p-12">
+      <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-500/10 via-transparent to-cyan-500/10"></div>
+      <h2 class="relative text-2xl font-bold text-white sm:text-3xl">Ready when you are</h2>
+      <p class="relative mx-auto mt-3 max-w-md text-sm text-slate-400">Create an account for permanent URLs — or just run the anonymous command. No sign-up required for instant links.</p>
+      <div class="relative mt-7 flex flex-wrap justify-center gap-3">
+        <a href="/register" class="btn-primary">Create account</a>
+        <a href="/docs" class="btn-ghost">Browse documentation</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="border-t border-white/10">
+  <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-xs text-slate-500 sm:flex-row">
+    <div class="flex items-center gap-2">
+      <span class="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-brand-400 to-cyan-400 text-slate-950">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 8h14M12 8v11"/></svg>
+      </span>
+      tmin v{{version}} — self-hosted tunneling
+    </div>
+    <div class="flex items-center gap-5">
+      <a href="/docs" class="hover:text-slate-300">Docs</a>
+      <a href="/openapi.json" class="hover:text-slate-300">OpenAPI</a>
+      <a href="/health" class="hover:text-slate-300">Health</a>
+      <a href="/login" class="hover:text-slate-300">Log in</a>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

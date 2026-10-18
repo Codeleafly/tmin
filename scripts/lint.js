@@ -8,6 +8,7 @@
  *  4. module size guard (<700 lines) — keeps files focused
  *  5. no import of node:child_process inside server runtime
  *  6. every ROUTE_TABLE path is served by an /api/v1 handler file
+ *  7. no HTML documents in server/src — pages live in web/ (AGENTS.md)
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -42,6 +43,9 @@ for (const f of serverSrc) {
     fail(rel, "console.* found — use logger from src/logger.ts");
   }
   if (/\beval\s*\(/.test(src) || /new Function\(/.test(src)) fail(rel, "eval/new Function forbidden");
+  if (/<!doctype/i.test(src) || /<html[\s>]/i.test(src)) {
+    fail(rel, "HTML document in server source — web pages live in web/ (see AGENTS.md)");
+  }
   if (/node:child_process/.test(src)) fail(rel, "child_process must not be used in server runtime");
   for (const m of src.matchAll(/(password|secret|token)\s*[:=]\s*["'][A-Za-z0-9+/=_-]{12,}["']/gi)) {
     fail(rel, `possible hardcoded secret: ${m[0].slice(0, 40)}…`);

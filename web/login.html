@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in · tmin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2334d399'/%3E%3Cpath d='M9 12h14M16 12v9' stroke='%23022c22' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { brand: { 300: "#6ee7b7", 400: "#34d399", 500: "#10b981", 600: "#059669" } },
+  fontFamily: { mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"] },
+} } };
+</script>
+<link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/app.js" defer></script>
+<script src="/assets/login.js" defer></script>
+</head>
+<body class="flex min-h-screen flex-col bg-slate-950 text-slate-200 antialiased">
+
+<div class="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+  <div class="absolute -top-32 left-1/2 h-80 w-[44rem] -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl"></div>
+</div>
+
+<header class="relative z-10">
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+    <a href="/" class="flex items-center gap-2.5 font-semibold text-white">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-cyan-400 text-slate-950">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 8h14M12 8v11"/></svg>
+      </span>
+      <span class="text-lg tracking-tight">tmin</span>
+    </a>
+    <a href="/register" class="text-sm text-slate-400 hover:text-white">Create account</a>
+  </div>
+</header>
+
+<main class="relative z-10 flex flex-1 items-center justify-center px-4 py-10">
+  <div class="w-full max-w-md fade-in">
+    <div class="card p-7 sm:p-8">
+      <h1 class="text-xl font-bold text-white">Welcome back</h1>
+      <p class="mt-1.5 text-sm text-slate-400">Log in to manage tunnels, routes and API tokens.</p>
+
+      <form id="loginForm" class="mt-6 space-y-4" novalidate>
+        <div>
+          <label class="label" for="login">Username or email</label>
+          <input id="login" name="login" class="field" autocomplete="username" placeholder="you or you@example.com" required>
+        </div>
+        <div>
+          <label class="label" for="password">Password</label>
+          <div class="relative">
+            <input id="password" name="password" type="password" class="field pr-12" autocomplete="current-password" placeholder="••••••••" required>
+            <button type="button" id="togglePw" class="absolute inset-y-0 right-0 px-3.5 text-slate-500 hover:text-slate-300" aria-label="Show password">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="error" class="hidden rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-300"></div>
+
+        <button id="submitBtn" type="submit" class="btn-primary w-full">Log in</button>
+      </form>
+
+      <p class="mt-5 text-center text-sm text-slate-400">
+        No account? <a href="/register" class="font-medium text-brand-300 hover:text-brand-400">Create one</a>
+      </p>
+
+      <div class="mt-6 border-t border-white/10 pt-5">
+        <div class="flex items-start gap-2.5 text-xs leading-relaxed text-slate-500">
+          <svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <span>
+            <span class="text-slate-400">Server admin?</span> Sign in here with the
+            <span class="code">ADMIN_USERNAME</span> / <span class="code">ADMIN_PASSWORD</span> credentials
+            set on the server — the admin account is created on first start.
+            See <a href="/docs#admin" class="text-brand-300 hover:text-brand-400">admin bootstrap</a>.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-5 text-center text-xs text-slate-500">
+      Forgot your password? A self-hosted server returns the reset token from the API in development mode — see <a href="/docs#trouble" class="text-slate-400 underline decoration-slate-600 hover:text-slate-300">docs</a>.
+    </p>
+  </div>
+</main>
+</body>
+</html>

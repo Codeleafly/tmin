@@ -107,6 +107,11 @@ export function sweepOnce(store: Store, cfg: AppConfig, now = Date.now()): { exp
   if (store.db.audit.length > 0) {
     store.db.audit = store.db.audit.filter((a) => a.at >= audCut).slice(-5000);
   }
+  // Device auth requests: keep for an hour after expiry (so polling gets DEVICE_CODE_EXPIRED).
+  if (store.db.deviceAuths.length > 0) {
+    const devCut = now - 3600_000;
+    store.db.deviceAuths = store.db.deviceAuths.filter((d) => d.expiresAt > devCut);
+  }
   if (expiredAnon || staleClosed) {
     logger.info("sweeper", { expiredAnon, staleClosed });
     store.markDirty();
